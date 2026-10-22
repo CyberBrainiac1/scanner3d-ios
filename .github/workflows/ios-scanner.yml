@@ -8,11 +8,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   native-app:
-    # private repos use the account's included Actions minutes (macOS minutes count at a higher rate); manual start only
+    # manual start only; the build script derives its folder from RUNNER_TEMP/GITHUB_RUN_ID/GITHUB_RUN_ATTEMPT
     runs-on: macos-15
     timeout-minutes: 40
-    env:
-      BUILD_ROOT: ${{ runner.temp }}/scanner3d-native-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Check out explicitly approved source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -26,6 +24,6 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: scanner3d-native-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ env.BUILD_ROOT }}/artifacts/
+          path: ${{ runner.temp }}/scanner3d-native-${{ github.run_id }}-${{ github.run_attempt }}/artifacts/
           if-no-files-found: error
           retention-days: 7
