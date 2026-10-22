@@ -1,0 +1,20 @@
+{
+  "v": 1,
+  "type": "error",
+  "kind": "event",
+  "id": "pc-7",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "error": {
+      "code": "preview_invalid",
+      "message": "Preview packet rejected: depth_bytes does not match 256x192 u16",
+      "retryable": false,
+      "details": {
+        "frame_id": 1874,
+        "depth_bytes": 98000
+      }
+    },
+    "fatal": false,
+    "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "v": 1,
+  "type": "capture.stop",
+  "kind": "request",
+  "id": "pc-77",
+  "sent_at": "2026-10-21T14:02:11.204Z",
+  "body": {
+    "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+    "reason": "storage",
+    "detail": "The PC has less than 2 GiB free for originals."
+  }
+}

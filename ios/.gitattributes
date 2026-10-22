@@ -1,0 +1,6 @@
+# Preserve the exact upstream Git blob bytes on Windows and macOS.
+upstream/** -text
+tools/*.sh text eol=lf
+tools/*.py text eol=lf
+tests/*.py text eol=lf
+*.json text eol=lf

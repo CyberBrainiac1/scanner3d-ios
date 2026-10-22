@@ -1,0 +1,38 @@
+{
+  "v": 1,
+  "type": "status",
+  "kind": "event",
+  "id": "ph-57",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+    "recording": true,
+    "segment": 0,
+    "t_device_s": 48251.0007,
+    "thermal_state": "fair",
+    "storage_free_bytes": 60801120256,
+    "battery_level": 0.81,
+    "battery_state": "unplugged",
+    "low_power_mode": false,
+    "tracking_state": "limited",
+    "tracking_reason": "excessive_motion",
+    "rates_hz": {
+      "arframe": 59.9,
+      "depth": 59.9,
+      "accel": 99.7,
+      "gyro": 99.8,
+      "preview_sent": 9.5
+    },
+    "counters": {
+      "frames_captured": 2453,
+      "stills_captured": 14,
+      "preview_sent": 388,
+      "preview_dropped_queue": 21
+    },
+    "originals": {
+      "files_closed": 2490,
+      "files_complete_on_pc": 2310,
+      "bytes_pending": 52428800
+    }
+  }
+}

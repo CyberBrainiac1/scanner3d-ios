@@ -1,0 +1,266 @@
+{
+  "description": "Golden RFC 8785 (JSON Canonicalization Scheme) vectors shared by the Python workers (scanner_workers.provenance.canonical_json) and the C# shell. 'numbers': IEEE-754 binary64 bit patterns (big-endian hex) and their canonical text, null = must be rejected. 'documents': parse input_json as I-JSON, canonicalise, compare with expected (UTF-8) and expected_sha256 (SHA-256 of the UTF-8 bytes). 'invalid': canonicalisation must fail.",
+  "spec": "https://www.rfc-editor.org/rfc/rfc8785",
+  "numbers": [
+    {
+      "ieee754_hex": "0000000000000000",
+      "expected": "0",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "8000000000000000",
+      "expected": "0",
+      "note": "rfc8785 appendix B (minus zero)"
+    },
+    {
+      "ieee754_hex": "0000000000000001",
+      "expected": "5e-324",
+      "note": "rfc8785 appendix B (min. subnormal)"
+    },
+    {
+      "ieee754_hex": "8000000000000001",
+      "expected": "-5e-324",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "7fefffffffffffff",
+      "expected": "1.7976931348623157e+308",
+      "note": "rfc8785 appendix B (max. double)"
+    },
+    {
+      "ieee754_hex": "ffefffffffffffff",
+      "expected": "-1.7976931348623157e+308",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "4340000000000000",
+      "expected": "9007199254740992",
+      "note": "rfc8785 appendix B (2^53)"
+    },
+    {
+      "ieee754_hex": "c340000000000000",
+      "expected": "-9007199254740992",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "4430000000000000",
+      "expected": "295147905179352830000",
+      "note": "rfc8785 appendix B (2^68)"
+    },
+    {
+      "ieee754_hex": "7fffffffffffffff",
+      "expected": null,
+      "note": "rfc8785 appendix B: NaN must be rejected"
+    },
+    {
+      "ieee754_hex": "7ff0000000000000",
+      "expected": null,
+      "note": "rfc8785 appendix B: Infinity must be rejected"
+    },
+    {
+      "ieee754_hex": "44b52d02c7e14af5",
+      "expected": "9.999999999999997e+22",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "44b52d02c7e14af6",
+      "expected": "1e+23",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "44b52d02c7e14af7",
+      "expected": "1.0000000000000001e+23",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "444b1ae4d6e2ef4e",
+      "expected": "999999999999999700000",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "444b1ae4d6e2ef4f",
+      "expected": "999999999999999900000",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "444b1ae4d6e2ef50",
+      "expected": "1e+21",
+      "note": "rfc8785 appendix B (exponent threshold)"
+    },
+    {
+      "ieee754_hex": "3eb0c6f7a0b5ed8c",
+      "expected": "9.999999999999997e-7",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "3eb0c6f7a0b5ed8d",
+      "expected": "0.000001",
+      "note": "rfc8785 appendix B (exponent threshold)"
+    },
+    {
+      "ieee754_hex": "41b3de4355555553",
+      "expected": "333333333.3333332",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "41b3de4355555554",
+      "expected": "333333333.33333325",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "41b3de4355555555",
+      "expected": "333333333.3333333",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "41b3de4355555556",
+      "expected": "333333333.3333334",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "41b3de4355555557",
+      "expected": "333333333.33333343",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "becbf647612f3696",
+      "expected": "-0.0000033333333333333333",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "43143ff3c1cb0959",
+      "expected": "1424953923781206.2",
+      "note": "rfc8785 appendix B"
+    },
+    {
+      "ieee754_hex": "fff0000000000000",
+      "expected": null,
+      "note": "-Infinity must be rejected"
+    },
+    {
+      "ieee754_hex": "3ff0000000000000",
+      "expected": "1",
+      "note": "1.0: integral float, no '.0'"
+    },
+    {
+      "ieee754_hex": "4010000000000000",
+      "expected": "4",
+      "note": "4.0 (trunc_voxels)"
+    },
+    {
+      "ieee754_hex": "4090000000000000",
+      "expected": "1024",
+      "note": "1024.0 (vram_budget_mib)"
+    },
+    {
+      "ieee754_hex": "3ff8000000000000",
+      "expected": "1.5",
+      "note": "1.5 (block_margin)"
+    },
+    {
+      "ieee754_hex": "3f589374bc6a7efa",
+      "expected": "0.0015",
+      "note": "0.0015 (voxel_m)"
+    },
+    {
+      "ieee754_hex": "3fd3333333333334",
+      "expected": "0.30000000000000004",
+      "note": "0.1 + 0.2: shortest round-trip"
+    },
+    {
+      "ieee754_hex": "bff8000000000000",
+      "expected": "-1.5",
+      "note": "negative"
+    },
+    {
+      "ieee754_hex": "4415af1d78b58c40",
+      "expected": "100000000000000000000",
+      "note": "1e20: last plain integer"
+    },
+    {
+      "ieee754_hex": "3e7ad7f29abcaf48",
+      "expected": "1e-7",
+      "note": "1e-7: first exponent form below 1"
+    },
+    {
+      "ieee754_hex": "3eb0c6f7a0b5ed8d",
+      "expected": "0.000001",
+      "note": "1e-6: last plain fraction"
+    },
+    {
+      "ieee754_hex": "3ee4f8b588e368f1",
+      "expected": "0.00001",
+      "note": "1e-5"
+    }
+  ],
+  "documents": [
+    {
+      "name": "rfc8785_section_3.2.2_example",
+      "input_json": "{\n  \"numbers\": [333333333.33333329, 1E30, 4.50, 2e-3, 0.000000000000000000000000001],\n  \"string\": \"\\u20ac$\\u000F\\u000aA'\\u0042\\u0022\\u005c\\\\\\\"\\/\",\n  \"literals\": [null, true, false]\n}",
+      "expected": "{\"literals\":[null,true,false],\"numbers\":[333333333.3333333,1e+30,4.5,0.002,1e-27],\"string\":\"\u20ac$\\u000f\\nA'B\\\"\\\\\\\\\\\"/\"}",
+      "expected_sha256": "2d5e01a318d0f0879ab568c4be289c8b1f64ef8921a53c6277d5e069978baacb",
+      "note": "RFC 8785 section 3.2.2 sample input/output"
+    },
+    {
+      "name": "rfc8785_section_3.2.3_sorting",
+      "input_json": "{\n  \"\\u20ac\": \"Euro Sign\",\n  \"\\r\": \"Carriage Return\",\n  \"\\ufb33\": \"Hebrew Letter Dalet With Dagesh\",\n  \"1\": \"One\",\n  \"\\ud83d\\ude00\": \"Emoji: Grinning Face\",\n  \"\\u0080\": \"Control\",\n  \"\\u00f6\": \"Latin Small Letter O With Diaeresis\"\n}",
+      "expected": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\u0080\":\"Control\",\"\u00f6\":\"Latin Small Letter O With Diaeresis\",\"\u20ac\":\"Euro Sign\",\"\ud83d\ude00\":\"Emoji: Grinning Face\",\"\ufb33\":\"Hebrew Letter Dalet With Dagesh\"}",
+      "expected_sha256": "5e321556d22018a9656991a9e94f77ec175fa193e52a2429d312f8419ec8b08c",
+      "note": "RFC 8785 section 3.2.3: UTF-16 code-unit order puts U+1F600 (D83D DE00) before U+FB33"
+    },
+    {
+      "name": "integral_floats",
+      "input_json": "{\"vram_budget_mib\": 1024.0, \"trunc_voxels\": 4.0, \"depth_scale\": 1.0, \"n\": 1}",
+      "expected": "{\"depth_scale\":1,\"n\":1,\"trunc_voxels\":4,\"vram_budget_mib\":1024}",
+      "expected_sha256": "3c0acf7bc800369ce3f0f6b423c95d3ad01fb3a7c19b877ec5f670fbe6543d3b",
+      "note": "M1-R1: 1.0 and 1 must serialise identically"
+    },
+    {
+      "name": "exponent_thresholds_and_minus_zero",
+      "input_json": "[1e21, 1e20, 1e-7, 1e-6, -0.0, 0.0, 123e-20, 1.5e300, 0.00001234, -1e-7]",
+      "expected": "[1e+21,100000000000000000000,1e-7,0.000001,0,0,1.23e-18,1.5e+300,0.00001234,-1e-7]",
+      "expected_sha256": "700bb63ee353fdcf51b50f24e87b559f6895905b8148c29abe4528d1e4b683f7",
+      "note": "ECMAScript Number::toString thresholds"
+    },
+    {
+      "name": "utf16_key_order",
+      "input_json": "{\"b\": 1, \"aa\": 2, \"a\": 3, \"B\": 4, \"A\": 5, \"\\u00e9\": 6, \"e\\u0301\": 7, \"\\uffff\": 8, \"\\ud800\\udc00\": 9, \"\": 10}",
+      "expected": "{\"\":10,\"A\":5,\"B\":4,\"a\":3,\"aa\":2,\"b\":1,\"e\u0301\":7,\"\u00e9\":6,\"\ud800\udc00\":9,\"\uffff\":8}",
+      "expected_sha256": "ca1f552b7006d437b5b33022d7c115813d04c1fdd16cd9015a5f089326de43ea",
+      "note": "Code-point order would put U+FFFF before U+10000; UTF-16 (D800 DC00) puts U+10000 first. No Unicode normalisation."
+    },
+    {
+      "name": "string_escapes",
+      "input_json": "[\"\\u0000\\u0001\\u001f\", \"\\b\\f\\n\\r\\t\", \"\\u007f\\u2028\\u2029\", \"\\/<>&'\", \"\\\"\\\\\"]",
+      "expected": "[\"\\u0000\\u0001\\u001f\",\"\\b\\f\\n\\r\\t\",\"\u007f\u2028\u2029\",\"/<>&'\",\"\\\"\\\\\"]",
+      "expected_sha256": "5ed2304201883ff23b3c7069dc20097ac948318388938f21c58e4eae8dcddd5f",
+      "note": "Only \" \\ and U+0000..U+001F are escaped; \\b \\f \\n \\r \\t use short forms, others lower-case \\u00xx"
+    },
+    {
+      "name": "nesting_and_whitespace",
+      "input_json": " { \"z\" : [ { \"b\" : [ ] , \"a\" : { } } , null ] , \"y\" : true , \"x\" : \"v\" } ",
+      "expected": "{\"x\":\"v\",\"y\":true,\"z\":[{\"a\":{},\"b\":[]},null]}",
+      "expected_sha256": "591b96b5a51e7cc6a4bdabbed32f7811356e311d81a684223a43e63a4c489b9f",
+      "note": "Whitespace removed, nested objects sorted, array order kept"
+    },
+    {
+      "name": "lidar_clean_parameters_m1",
+      "input_json": "{\"voxel_m\": 0.0015, \"block_resolution\": 16, \"trunc_voxels\": 4.0, \"min_confidence\": 2, \"depth_max_m\": 1.0, \"weight_threshold\": 3.0, \"frame_stride\": 1, \"o3d_pixel_shift\": 0.5, \"color\": false, \"device\": \"CUDA:0\", \"vram_budget_mib\": 1024.0, \"block_margin\": 1.5, \"block_count\": 2632, \"depth_scale\": 1.0, \"intrinsics_scaling\": \"multiplicative\", \"device_used\": \"CUDA:0\"}",
+      "expected": "{\"block_count\":2632,\"block_margin\":1.5,\"block_resolution\":16,\"color\":false,\"depth_max_m\":1,\"depth_scale\":1,\"device\":\"CUDA:0\",\"device_used\":\"CUDA:0\",\"frame_stride\":1,\"intrinsics_scaling\":\"multiplicative\",\"min_confidence\":2,\"o3d_pixel_shift\":0.5,\"trunc_voxels\":4,\"voxel_m\":0.0015,\"vram_budget_mib\":1024,\"weight_threshold\":3}",
+      "expected_sha256": "c286692ce6f60a80b62ab7be4757ca43fcca4478a50e72c4674a5596a29a2bf0",
+      "note": "Actual parameters of m1/lidar_clean (sidecar written before JCS; its stored hash is the legacy Python form)"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "lone_high_surrogate_value",
+      "input_json": "[\"\\ud800\"]",
+      "note": "strings must be well-formed Unicode"
+    },
+    {
+      "name": "lone_low_surrogate_key",
+      "input_json": "{\"\\udc00\": 1}",
+      "note": "property names must be well-formed Unicode"
+    }
+  ]
+}

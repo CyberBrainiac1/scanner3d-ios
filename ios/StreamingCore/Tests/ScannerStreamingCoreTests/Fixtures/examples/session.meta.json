@@ -1,0 +1,60 @@
+{
+  "format": "s3d-session",
+  "format_version": "1.0",
+  "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+  "profile": "tabletop",
+  "started_at": "2026-10-20T22:41:03.512Z",
+  "t_device_start_s": 48210.1052,
+  "device": {
+    "model_identifier": "iPhone15,2",
+    "os_version": "18.1",
+    "display_name": "Scan iPhone"
+  },
+  "app": {
+    "name": "scanner3d-ios",
+    "version": "0.1.0",
+    "build": "17",
+    "source_revision": "4f2a9c1"
+  },
+  "capture": {
+    "video": {
+      "width": 1920,
+      "height": 1440,
+      "fps": 60,
+      "codec": "hevc"
+    },
+    "depth": {
+      "width": 256,
+      "height": 192,
+      "source": "scene_depth",
+      "every_n_frames": 2
+    },
+    "confidence": true,
+    "stills": {
+      "enabled": true,
+      "width": null,
+      "height": null,
+      "codec": "heic",
+      "quality": 0.95
+    },
+    "imu": {
+      "accel_requested_hz": 100,
+      "gyro_requested_hz": 100,
+      "device_motion_requested_hz": null
+    },
+    "intrinsics_scaling": "multiplicative"
+  },
+  "conventions": {
+    "length_unit": "m",
+    "accel_unit": "g",
+    "gyro_unit": "rad/s",
+    "time": "device_uptime_s",
+    "world": "arkit_right_handed_y_up",
+    "camera_axes": "arkit_x_right_y_up_z_back",
+    "pose": "camera_to_world",
+    "matrix_layout": "row_major_column_vectors",
+    "image_orientation": "sensor_native_landscape",
+    "imu_axes": "coremotion_device",
+    "depth": "z_depth_f32_m"
+  }
+}

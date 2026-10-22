@@ -1,0 +1,240 @@
+import Foundation
+import Observation
+import UIKit
+import ScannerStreamingCore
+
+@MainActor @Observable
+final class ScannerModel {
+    struct ScanRow: Identifiable, Sendable {
+        let id: UUID
+        let title: String
+        let originals: Int
+        let finalized: Bool
+        var completeOnPC = false
+        var progress = "Saved on iPhone"
+        var catalogReadable = true
+        var createdAt = Date.distantPast
+    }
+    enum Sheet: String, Identifiable { case pairing; var id: String { rawValue } }
+    var sheet: Sheet?
+    var busy = false
+    var recording = false
+    var elapsed: Double = 0
+    var message = "Ready to scan"
+    var linkMessage = "Connect your Windows PC for a live preview"
+    var connected = false
+    var pcName: String?
+    var error: String?
+    var inventoryError: String?
+    var frames: UInt64 = 0
+    var stills: UInt64 = 0
+    var dropped: UInt64 = 0
+    var freeBytes: UInt64 = 0
+    var scans: [ScanRow] = []
+    var remoteStop: RemoteStopRequest?
+    private var currentSessionID: UUID?
+    private var lifetimeEpoch = UUID()
+    private var lastLinkRevision: UInt64 = 0
+    private var inventoryEpoch = UUID()
+    @ObservationIgnored let engine: CaptureEngine
+    @ObservationIgnored private let parent: URL
+    @ObservationIgnored private var reconnectTask: Task<Void, Never>?
+    @ObservationIgnored private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+    @ObservationIgnored private lazy var link: PhoneLink = PhoneLink(
+        device: DeviceInfo(modelIdentifier: CaptureEngine.modelIdentifier(), osVersion: UIDevice.current.systemVersion, displayName: "Scan iPhone"),
+        state: { [weak self] value in Task { @MainActor in
+            guard let self, value.revision > self.lastLinkRevision else { return }
+            self.lastLinkRevision = value.revision
+            self.connected = value.connected; self.pcName = value.name; self.linkMessage = value.message
+            self.engine.allowPreview(value.previewAllowed)
+        } },
+        progress: { [weak self] id, value, complete in Task { @MainActor in
+            guard let self, let index = self.scans.firstIndex(where: { $0.id == id }) else { return }
+            self.scans[index].completeOnPC = complete
+            self.scans[index].progress = complete ? "Saved on PC" : "\(value.filesCompleteOnPC) of \(value.filesKnown) files confirmed on PC"
+        } },
+        remoteStop: { [weak self] id, detail in Task { @MainActor in
+            self?.remoteStop = RemoteStopRequest(id: UUID().uuidString, sessionID: id, reason: detail)
+        } }, configurePreview: { [weak self] profile in Task { @MainActor in self?.engine.configurePreview(profile) } })
+
+    init() {
+        parent = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Scans", isDirectory: true)
+        engine = CaptureEngine(parent: parent)
+        engine.onStatus = { [weak self] snapshot in Task { @MainActor in
+            guard let self else { return }
+            guard self.currentSessionID == snapshot.sessionID else { return }
+            self.recording = snapshot.recording; self.elapsed = snapshot.elapsed
+            self.frames = snapshot.frames; self.stills = snapshot.stills; self.dropped = snapshot.droppedFrames
+            self.freeBytes = snapshot.freeBytes
+            if let text = snapshot.message { self.message = text }
+            do { try await self.link.status(snapshot) } catch { self.linkMessage = "Preview disconnected; recording is safe" }
+        } }
+        engine.onPreview = { [weak self] id, segment, sequence, bytes in Task { @MainActor in
+            do { try await self?.link.offerPreview(sessionID: id, segment: segment, sequence: sequence, bytes: bytes) }
+            catch { self?.linkMessage = "Preview paused; recording is safe" }
+        } }
+        engine.onSegment = { [weak self] id, segment, reason, first, time in Task { @MainActor in
+            do { try await self?.link.segment(sessionID: id, segment: segment, reason: reason, firstFrame: first, time: time) }
+            catch { self?.linkMessage = "Preview paused; recording is safe" }
+        } }
+        engine.onFailure = { [weak self] text in Task { @MainActor in
+            guard let self else { return }
+            self.error = text; self.recording = false; self.currentSessionID = nil; self.lifetimeEpoch = UUID()
+            UIApplication.shared.isIdleTimerDisabled = false
+            await self.refreshScans()
+        } }
+        engine.onPreviewFailure = { [weak self] _ in Task { @MainActor in
+            self?.linkMessage = "PC preview unavailable; original recording continues on iPhone"
+        } }
+        engine.onClosed = { [weak self] store in Task { @MainActor in
+            guard let self else { return }
+            guard self.currentSessionID == nil || self.currentSessionID == store.sessionID else { await self.refreshScans(); return }
+            self.currentSessionID = nil
+            self.recording = false; self.remoteStop = nil; UIApplication.shared.isIdleTimerDisabled = false
+            await self.refreshScans()
+            do { try await self.link.stopped(store) } catch { self.linkMessage = "Scan is safe on iPhone; reconnect to send it" }
+        } }
+    }
+
+    func foreground() async { await refreshScans(); resumeLink() }
+
+    func resumeLink() {
+        guard reconnectTask == nil else { return }
+        lifetimeEpoch = UUID()
+        reconnectTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                do { try await self.link.reconnect() }
+                catch { self.connected = false; self.linkMessage = "PC unavailable; local recordings are safe" }
+                do { try await Task.sleep(nanoseconds: 3_000_000_000) } catch { return }
+            }
+        }
+    }
+
+    func toggleRecording() async {
+        guard !busy else { return }
+        busy = true; error = nil
+        defer { busy = false }
+        if recording {
+            do { try await engine.stop(); recording = false; message = "Saved on iPhone" }
+            catch { error = "Could not finalize this scan: \(error.localizedDescription). Its files are retained." }
+            UIApplication.shared.isIdleTimerDisabled = false
+        } else {
+            do {
+                let epoch = lifetimeEpoch
+                currentSessionID = try await engine.start()
+                guard epoch == lifetimeEpoch, UIApplication.shared.applicationState == .active else {
+                    try await engine.stop(reason: "app_backgrounded"); currentSessionID = nil; recording = false
+                    await refreshScans(); return
+                }
+                recording = true; elapsed = 0; message = "Scanning · recording on iPhone"
+                UIApplication.shared.isIdleTimerDisabled = true
+                await refreshScans()
+                if let store = await engine.currentStore() {
+                    do { try await link.startRecording(store) }
+                    catch { linkMessage = "PC preview unavailable; recording continues on iPhone" }
+                }
+            } catch { self.error = error.localizedDescription }
+        }
+    }
+
+    func confirmRemoteStop() async {
+        remoteStop = nil
+        let approved = await link.confirmRemoteStop()
+        let current = await engine.currentStore()
+        if let id = approved, recording, current?.sessionID == id {
+            await toggleRecording()
+        }
+    }
+    func declineRemoteStop() async { remoteStop = nil; await link.declineRemoteStop() }
+
+    func connectConfirmed(_ payload: PairingPayload) async throws {
+        reconnectTask?.cancel(); reconnectTask = nil
+        defer { resumeLink() }
+        try await link.connectConfirmed(payload)
+    }
+
+    func connectTyped(address: PairingAddress, fingerprint: String, token: String) async throws {
+        reconnectTask?.cancel(); reconnectTask = nil
+        defer { resumeLink() }
+        try await link.connectTyped(address: address, fingerprint: fingerprint, token: token)
+    }
+
+    func send(_ row: ScanRow) async {
+        guard !recording else { return }
+        error = nil
+        do {
+            let directory = parent
+            let store = try await Task.detached(priority: .utility) {
+                try OriginalStore(parent: directory, sessionID: row.id, create: false)
+            }.value
+            guard store.finalized else { throw OriginalStore.Failure.io("Recording is incomplete; files are retained for recovery") }
+            try await link.upload(store)
+            try await link.reconnect()
+        } catch { self.error = error.localizedDescription }
+    }
+
+    func inspect(_ row: ScanRow) async throws -> RecordingInspection {
+        guard !recording, !busy else { throw OriginalStore.Failure.io("Stop and save before checking recordings.") }
+        let root = parent
+        let id = row.id
+        let worker = Task.detached(priority: .utility) { try RecordingInspection.inspect(parent: root, sessionID: id) }
+        return try await withTaskCancellationHandler(operation: { try await worker.value }, onCancel: { worker.cancel() })
+    }
+
+    func refreshScans() async {
+        let epoch = UUID()
+        inventoryEpoch = epoch
+        let root = parent
+        let inventory: [RecordingInventory]
+        do { inventory = try await Task.detached(priority: .utility) { try RecordingInventory.list(parent: root) }.value }
+        catch {
+            guard inventoryEpoch == epoch else { return }
+            inventoryError = "Could not list saved recordings. Files are retained: \(error.localizedDescription)"; return
+        }
+        guard inventoryEpoch == epoch else { return }
+        inventoryError = nil
+        let rows = inventory.map { item in
+            ScanRow(id: item.id, title: item.createdAt.formatted(date: .abbreviated, time: .shortened),
+                originals: item.fileCount ?? 0, finalized: item.finalized,
+                progress: item.fileCount == nil ? "File list needs inspection · all files retained"
+                    : item.finalized ? "Saved on iPhone" : "Incomplete recording · files retained",
+                catalogReadable: item.fileCount != nil, createdAt: item.createdAt)
+        }
+        let old = Dictionary(uniqueKeysWithValues: scans.map { ($0.id, $0) })
+        scans = rows.map { row in
+            var value = row
+            if let previous = old[row.id], row.catalogReadable, previous.catalogReadable,
+               row.finalized == previous.finalized, row.originals == previous.originals {
+                value.completeOnPC = previous.completeOnPC; value.progress = previous.progress
+            }
+            return value
+        }
+    }
+
+    func background() {
+        lifetimeEpoch = UUID()
+        let closingEpoch = lifetimeEpoch
+        reconnectTask?.cancel(); reconnectTask = nil
+        backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Close scanner originals") { [weak self] in
+            Task { @MainActor in self?.endBackgroundTask() }
+        }
+        Task {
+            // Also wait for an already-requested error stop. isRunning may be false while disk
+            // finalization is still queued; ending the background task then would suspend it early.
+            do { try await engine.stop(reason: "app_backgrounded") }
+            catch { self.error = "Interrupted scan retained; closing did not complete." }
+            if lifetimeEpoch == closingEpoch {
+                recording = false; UIApplication.shared.isIdleTimerDisabled = false
+                await link.disconnect()
+            }
+            endBackgroundTask()
+        }
+    }
+
+    private func endBackgroundTask() {
+        guard backgroundTask != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(backgroundTask); backgroundTask = .invalid
+    }
+}

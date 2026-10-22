@@ -1,0 +1,31 @@
+# Local assistant/editor settings
+.claude/
+.vs/
+.vscode/
+*.user
+
+# Build output
+bin/
+obj/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Scan data, recordings and generated reconstructions never belong in the public repo.
+# Real data lives under %LOCALAPPDATA%\3DScanner; only small synthetic test fixtures are committed.
+*.ply
+*.obj
+*.glb
+*.3mf
+*.s3dm
+*.mp4
+*.heic
+*.ipa
+scans/
+recordings/
+
+# Secrets
+*.pem
+*.pfx
+*.p12
+.env

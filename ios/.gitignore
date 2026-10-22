@@ -1,0 +1,7 @@
+build/
+*.xcarchive/
+*.xcresult/
+DerivedData/
+Payload/
+*.ipa
+__pycache__/

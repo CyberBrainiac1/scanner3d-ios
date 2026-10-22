@@ -1,0 +1,45 @@
+{
+  "v": 1,
+  "type": "hello",
+  "kind": "request",
+  "id": "ph-1",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "socket": "preview",
+    "protocol_versions": [
+      "1.0"
+    ],
+    "preview_layout_versions": [
+      1
+    ],
+    "chunk_layout_versions": [
+      1
+    ],
+    "app": {
+      "name": "scanner3d-ios",
+      "version": "0.1.0",
+      "build": "17",
+      "source_revision": "4f2a9c1"
+    },
+    "device": {
+      "model_identifier": "iPhone15,2",
+      "os_version": "18.1",
+      "display_name": "Scan iPhone"
+    },
+    "auth": {
+      "method": "pairing_token",
+      "token": "7Q4K9M2X",
+      "sas_confirmed": true
+    },
+    "capabilities": {
+      "rgb_codecs": [
+        "jpeg"
+      ],
+      "depth_codecs": [
+        "f32",
+        "u16"
+      ],
+      "max_preview_hz": 10
+    }
+  }
+}

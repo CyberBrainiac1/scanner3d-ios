@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "type": "hello",
+  "kind": "response",
+  "id": "pc-1",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "reply_to": "ph-1",
+  "ok": false,
+  "error": {
+    "code": "token_expired",
+    "message": "This pairing code has expired. Show a new code on the PC.",
+    "retryable": false,
+    "details": {}
+  }
+}

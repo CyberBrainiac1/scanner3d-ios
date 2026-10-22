@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "type": "originals.manifest",
+  "kind": "response",
+  "id": "pc-3",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "reply_to": "ph-3",
+  "ok": true,
+  "body": {
+    "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+    "manifest_seq_durable": 42
+  }
+}

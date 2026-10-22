@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "type": "originals.resume",
+  "kind": "response",
+  "id": "pc-3",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "reply_to": "ph-3",
+  "ok": true,
+  "body": {
+    "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+    "snapshot_rev": 118,
+    "known": true,
+    "manifest_seq_durable": 41,
+    "final_manifest_received": false,
+    "files_complete": [
+      {
+        "first": 2304,
+        "count": 6
+      }
+    ],
+    "files_partial": [
+      {
+        "file_id": 2303,
+        "chunk_bytes": 1048576,
+        "chunks_durable": [
+          {
+            "first": 7,
+            "count": 2
+          }
+        ]
+      }
+    ],
+    "all_complete": false,
+    "next_cursor": null
+  }
+}

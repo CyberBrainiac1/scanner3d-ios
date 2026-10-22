@@ -1,0 +1,32 @@
+{
+  "v": 1,
+  "type": "originals.ack",
+  "kind": "event",
+  "id": "pc-5",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+    "acks": [
+      {
+        "file_id": 2303,
+        "chunks": [
+          {
+            "first": 3,
+            "count": 2
+          }
+        ],
+        "file_complete": true
+      },
+      {
+        "file_id": 2313,
+        "chunks": [
+          {
+            "first": 0,
+            "count": 2
+          }
+        ],
+        "file_complete": false
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "type": "originals.nack",
+  "kind": "event",
+  "id": "pc-6",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+    "file_id": 2313,
+    "chunk_index": 2,
+    "reason": "checksum_mismatch",
+    "action": "resend_chunk",
+    "retry_after_ms": null
+  }
+}

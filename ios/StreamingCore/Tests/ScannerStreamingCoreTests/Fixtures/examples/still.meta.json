@@ -1,0 +1,46 @@
+{
+  "format": "s3d-still",
+  "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+  "still_id": 14,
+  "segment": 0,
+  "coord_frame": "seg-0",
+  "t_device_s": 48249.8813,
+  "nearest_frame_id": 2380,
+  "camera_to_world": [
+    0.9998,
+    0.0,
+    0.0199,
+    0.0412,
+    0.004,
+    0.9801,
+    -0.1987,
+    0.2715,
+    -0.0195,
+    0.1988,
+    0.9798,
+    0.392,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+  ],
+  "tracking_state": "normal",
+  "tracking_reason": "none",
+  "image": {
+    "path": "stills/000014.heic",
+    "codec": "heic",
+    "intrinsics": {
+      "width": 4032,
+      "height": 3024,
+      "fx": 2961.6,
+      "fy": 2961.6,
+      "cx": 2013.4,
+      "cy": 1515.9
+    }
+  },
+  "depth": null,
+  "exposure": {
+    "duration_s": 0.008333,
+    "iso": 160.0
+  }
+}

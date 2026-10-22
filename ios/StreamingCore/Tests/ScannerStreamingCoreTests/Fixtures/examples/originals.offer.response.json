@@ -1,0 +1,49 @@
+{
+  "v": 1,
+  "type": "originals.offer",
+  "kind": "response",
+  "id": "pc-4",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "reply_to": "ph-4",
+  "ok": true,
+  "body": {
+    "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+    "files": [
+      {
+        "file_id": 2303,
+        "state": "partial",
+        "chunk_bytes": 1048576,
+        "chunks_total": 5,
+        "chunks_durable_count": 3
+      },
+      {
+        "file_id": 2310,
+        "state": "need",
+        "chunk_bytes": 1048576,
+        "chunks_total": 1,
+        "chunks_durable_count": 0
+      },
+      {
+        "file_id": 2311,
+        "state": "need",
+        "chunk_bytes": 1048576,
+        "chunks_total": 1,
+        "chunks_durable_count": 0
+      },
+      {
+        "file_id": 2313,
+        "state": "need",
+        "chunk_bytes": 1048576,
+        "chunks_total": 4,
+        "chunks_durable_count": 0
+      },
+      {
+        "file_id": 2290,
+        "state": "partial",
+        "chunk_bytes": 2097152,
+        "chunks_total": 3,
+        "chunks_durable_count": 1
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "v": 1,
+  "type": "flow",
+  "kind": "event",
+  "id": "pc-3",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "preview": {
+      "enabled": true,
+      "target_hz": 10,
+      "inflight_max": 2,
+      "reason": null
+    },
+    "originals": {
+      "enabled": true,
+      "max_bytes_per_s": 4000000,
+      "window_chunks": 16,
+      "reason": "live_capture_priority"
+    }
+  }
+}

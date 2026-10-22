@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "type": "session.stop",
+  "kind": "request",
+  "id": "ph-341",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+    "t_device_s": 48392.7735,
+    "reason": "pc_request",
+    "last_frame_id": 10957,
+    "frames_captured": 10950,
+    "stills_captured": 61,
+    "segments": 2
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "v": 1,
+  "type": "originals.manifest",
+  "kind": "request",
+  "id": "ph-3",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+    "manifest_seq": 42,
+    "final": false,
+    "total_files": null,
+    "files": [
+      {
+        "file_id": 2310,
+        "path": "depth/004620.f32",
+        "kind": "depth_f32",
+        "bytes": 196608,
+        "sha256": "0d5f1a8e3c7b9264f1e0d3c2b5a4978685f4e3d2c1b0a9f8e7d6c5b4a3928171",
+        "segment": 0
+      },
+      {
+        "file_id": 2311,
+        "path": "confidence/004620.u8",
+        "kind": "confidence_u8",
+        "bytes": 49152,
+        "sha256": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "segment": 0
+      },
+      {
+        "file_id": 2312,
+        "path": "motion/accel/part-000004.csv",
+        "kind": "accel_csv",
+        "bytes": 41873,
+        "sha256": "f0e1d2c3b4a5968778695a4b3c2d1e0ff0e1d2c3b4a5968778695a4b3c2d1e0f",
+        "segment": null
+      },
+      {
+        "file_id": 2313,
+        "path": "stills/000014.heic",
+        "kind": "still_image",
+        "bytes": 3870211,
+        "sha256": "1f2e3d4c5b6a79881f2e3d4c5b6a79881f2e3d4c5b6a79881f2e3d4c5b6a7988",
+        "segment": 0
+      },
+      {
+        "file_id": 2314,
+        "path": "stills/000014.json",
+        "kind": "still_meta",
+        "bytes": 1204,
+        "sha256": "2a3b4c5d6e7f80912a3b4c5d6e7f80912a3b4c5d6e7f80912a3b4c5d6e7f8091",
+        "segment": 0
+      }
+    ]
+  }
+}

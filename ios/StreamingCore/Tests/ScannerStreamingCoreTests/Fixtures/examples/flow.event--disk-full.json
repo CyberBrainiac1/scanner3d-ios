@@ -1,0 +1,21 @@
+{
+  "v": 1,
+  "type": "flow",
+  "kind": "event",
+  "id": "pc-977",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "preview": {
+      "enabled": false,
+      "target_hz": 0,
+      "inflight_max": 2,
+      "reason": "not_scanning"
+    },
+    "originals": {
+      "enabled": false,
+      "max_bytes_per_s": null,
+      "window_chunks": 16,
+      "reason": "disk_full"
+    }
+  }
+}

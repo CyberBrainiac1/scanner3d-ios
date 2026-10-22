@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "type": "ping",
+  "kind": "response",
+  "id": "ph-90",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "reply_to": "pc-88",
+  "ok": true,
+  "body": {
+    "t_pc_tx_qpc_ticks": "103680001234567",
+    "t_device_rx_s": 48251.412305,
+    "t_device_tx_s": 48251.412391
+  }
+}

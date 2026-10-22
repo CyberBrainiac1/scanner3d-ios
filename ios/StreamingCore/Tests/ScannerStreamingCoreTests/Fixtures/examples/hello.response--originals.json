@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "type": "hello",
+  "kind": "response",
+  "id": "pc-1",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "reply_to": "ph-1",
+  "ok": true,
+  "body": {
+    "socket": "originals",
+    "protocol_version": "1.0",
+    "preview_layout_version": 1,
+    "chunk_layout_version": 1,
+    "connection_id": "6b0f4e82-1d3c-4097-b2e5-8f7c6d5e4b32",
+    "qpc_frequency_hz": 10000000,
+    "pc": {
+      "pc_id": "c0ffee00-1234-4abc-8def-0123456789ab",
+      "display_name": "SCANNER-PC",
+      "app_version": "0.1.0",
+      "source_revision": "4f2a9c1"
+    },
+    "credential": null,
+    "limits": {
+      "max_text_bytes": 1048576,
+      "max_binary_bytes": 4194304,
+      "chunk_bytes": 1048576,
+      "window_chunks": 16,
+      "preview_inflight_max": 2,
+      "status_interval_ms": 2000,
+      "ping_interval_ms": 1000,
+      "idle_timeout_ms": 10000
+    },
+    "preview_profile": null
+  }
+}

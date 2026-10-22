@@ -1,0 +1,38 @@
+{
+  "format": "s3d-session-end",
+  "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+  "stopped_at": "2026-10-20T22:44:06.180Z",
+  "t_device_stop_s": 48392.7735,
+  "reason": "user",
+  "interrupted": false,
+  "last_frame_id": 10957,
+  "frames_captured": 10950,
+  "frames_with_depth": 5475,
+  "stills_captured": 61,
+  "segments": 2,
+  "measured_rates_hz": {
+    "arframe": {
+      "mean": 59.8,
+      "min": 57.5,
+      "max": 60.0
+    },
+    "depth": {
+      "mean": 29.9,
+      "min": 28.5,
+      "max": 30.0
+    },
+    "accel": {
+      "mean": 99.6,
+      "min": 97.0,
+      "max": 100.5
+    },
+    "gyro": {
+      "mean": 99.7,
+      "min": 97.5,
+      "max": 100.5
+    },
+    "device_motion": null
+  },
+  "thermal_max": "fair",
+  "files_total": 11893
+}

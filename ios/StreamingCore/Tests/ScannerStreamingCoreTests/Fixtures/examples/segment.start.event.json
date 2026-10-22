@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "type": "segment.start",
+  "kind": "event",
+  "id": "ph-140",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+    "segment": 1,
+    "coord_frame": "seg-1",
+    "reason": "interruption",
+    "previous_segment": 0,
+    "first_frame_id": 5121,
+    "t_device_s": 48297.441
+  }
+}

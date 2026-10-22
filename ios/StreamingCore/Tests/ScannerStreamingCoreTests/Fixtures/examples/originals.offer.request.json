@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "type": "originals.offer",
+  "kind": "request",
+  "id": "ph-4",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+    "file_ids": [
+      2303,
+      2310,
+      2311,
+      2313
+    ]
+  }
+}

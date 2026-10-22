@@ -1,0 +1,38 @@
+{
+  "v": 1,
+  "type": "status",
+  "kind": "event",
+  "id": "ph-4",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "session_id": null,
+    "recording": false,
+    "segment": null,
+    "t_device_s": 48200.0,
+    "thermal_state": "nominal",
+    "storage_free_bytes": 61203030016,
+    "battery_level": null,
+    "battery_state": "unknown",
+    "low_power_mode": false,
+    "tracking_state": "not_available",
+    "tracking_reason": "none",
+    "rates_hz": {
+      "arframe": null,
+      "depth": null,
+      "accel": null,
+      "gyro": null,
+      "preview_sent": null
+    },
+    "counters": {
+      "frames_captured": 0,
+      "stills_captured": 0,
+      "preview_sent": 0,
+      "preview_dropped_queue": 0
+    },
+    "originals": {
+      "files_closed": 0,
+      "files_complete_on_pc": 0,
+      "bytes_pending": 0
+    }
+  }
+}

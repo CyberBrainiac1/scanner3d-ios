@@ -1,0 +1,618 @@
+{
+  "repository": "https://github.com/strayrobots/scanner",
+  "tag": "v1.4",
+  "commit": "ec3e1dc9d33f8df2289ede6a5c59f7991d1a6bbb",
+  "license": "MIT",
+  "license_path": "upstream/LICENSE.md",
+  "source_url": "https://codeload.github.com/strayrobots/scanner/zip/ec3e1dc9d33f8df2289ede6a5c59f7991d1a6bbb",
+  "archive_sha256": "d0090b2bace6c28f4147d24d474f1c633a5e818a350348d7c44505cd1f06fa3f",
+  "upstream_source_modified": false,
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 42,
+      "sha256": "f9dd9eb8da9b84e4c9a0d1903db9d2380d64fbb7dadc4a381fee06eceebf34c6",
+      "git_blob_sha1": "24a8e87939aa53cdd833f6be7610cb4972e063ad"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 29,
+      "sha256": "1068126117715ea355673db4a5b1ee06e9e6424c75dbbae9a09961cd4708afa5",
+      "git_blob_sha1": "bf2730ce9cd363cac708292585f8161b7f4c3a40"
+    },
+    {
+      "path": "docs/export.md",
+      "bytes": 1118,
+      "sha256": "022dee981d57cff4526d6763425f8f420aab6d1ae7313ea754085823a9259bec",
+      "git_blob_sha1": "733eae32f59ae78b9ae203866e012fae7b6c2314"
+    },
+    {
+      "path": "docs/format.md",
+      "bytes": 3646,
+      "sha256": "ae438a9f3d7976ed191bdcb99255b8dbe46b52c613fa28eb6d7b4474cdc3e69a",
+      "git_blob_sha1": "af683cc336d07e177287a981f731940237e78968"
+    },
+    {
+      "path": "docs/readme.md",
+      "bytes": 569,
+      "sha256": "e0e775977670c2ae832f6577b1eeeddb4c4a2749eba9b4bd54538f5efe4044d4",
+      "git_blob_sha1": "22a05ca601f1c40e2d5cd57f5503bfbd7662be31"
+    },
+    {
+      "path": "images/euclid.jpg",
+      "bytes": 54302,
+      "sha256": "228037eb526be4fc5e398cc0e21b136883f94e11645495ae08889b03c0fd3e6f",
+      "git_blob_sha1": "0f68a66634da9e1a21ea54b9937ca5f830276f95"
+    },
+    {
+      "path": "images/screenshot.jpg",
+      "bytes": 22582,
+      "sha256": "72e2b98f117af9c4703bd4a43d2b662346bb88b02b6885b5c6799484ba98cd83",
+      "git_blob_sha1": "7b7699345f7c330b6f847b89d45b56beefd786a5"
+    },
+    {
+      "path": "images/stray-logo.png",
+      "bytes": 130,
+      "sha256": "109c505700c51b31b574247b6aea396ea5b440d9d9021e0875a2a08240ac4015",
+      "git_blob_sha1": "e5af50f6b98fa27140dca407ba12bc8b9c5353cc"
+    },
+    {
+      "path": "images/stray-logo.webp",
+      "bytes": 2690,
+      "sha256": "0d560953cbafbf2029ca56d701f9d927b439b236c4afc3e94126a49c553d838b",
+      "git_blob_sha1": "7f4d26aae4fda315e66a4f837ded3a57ad873991"
+    },
+    {
+      "path": "LICENSE.md",
+      "bytes": 1067,
+      "sha256": "413783b282e27459cb1d2c2dde1bc19b5ced50a373a65a2857ec28400d294ce5",
+      "git_blob_sha1": "6b51a4401a13f499827c21b65c83e8ed2d39c1b4"
+    },
+    {
+      "path": "Podfile",
+      "bytes": 69,
+      "sha256": "9b97e699099e8f7dfa269bb17b9b2a66dfde2f4a876eb5ef458d8fca971063e3",
+      "git_blob_sha1": "e4e2737bcd0dc94abf23cbba42cc038e953c8969"
+    },
+    {
+      "path": "Podfile.lock",
+      "bytes": 78,
+      "sha256": "10a597049cae898c2eb099af4e6fb194329ceea528e4c0dc3ab031b64b0f8865",
+      "git_blob_sha1": "fd5dfa0250018de45abd5d1f9286ae3cf9d1814d"
+    },
+    {
+      "path": "Pods/Manifest.lock",
+      "bytes": 78,
+      "sha256": "10a597049cae898c2eb099af4e6fb194329ceea528e4c0dc3ab031b64b0f8865",
+      "git_blob_sha1": "fd5dfa0250018de45abd5d1f9286ae3cf9d1814d"
+    },
+    {
+      "path": "Pods/Pods.xcodeproj/project.pbxproj",
+      "bytes": 17041,
+      "sha256": "19f6f54e744b9ed58ca6a5e3da3caeef094e4da5746fe0b438445d76b6e4873f",
+      "git_blob_sha1": "0982cdbccc7892e2710a610f2872cde1c6055504"
+    },
+    {
+      "path": "Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner-acknowledgements.markdown",
+      "bytes": 133,
+      "sha256": "f2a98ec2795dee67ce705ac29f61cb7383808cff7db94fbd2b2a01a57ce64ffa",
+      "git_blob_sha1": "102af7538517d891913220f2ddaf31451c0496b4"
+    },
+    {
+      "path": "Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner-acknowledgements.plist",
+      "bytes": 805,
+      "sha256": "3ddf95946dd1173fa4e5ab9223a3c81e754fa322bff280d69566be21aa52a687",
+      "git_blob_sha1": "7acbad1eabbfe72853c14d5f3734da1d5e4c0ce5"
+    },
+    {
+      "path": "Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner-dummy.m",
+      "bytes": 138,
+      "sha256": "6c2caabbdd93960fd6cc5acc698d2eeb6561c799f0cedbc5a83782602b641695",
+      "git_blob_sha1": "630f384bec8a63bd7833b645edab4fa7b691c3d3"
+    },
+    {
+      "path": "Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner-frameworks-Debug-input-files.xcfilelist",
+      "bytes": 141,
+      "sha256": "94e9a16c59af4c6743c07f437feae92046eca62a990d98f342a5aec15bc811b0",
+      "git_blob_sha1": "c87f36a14dd06598d40f2601b6afbc151ad41e6c"
+    },
+    {
+      "path": "Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner-frameworks-Debug-output-files.xcfilelist",
+      "bytes": 68,
+      "sha256": "cf77366cb224b4b19b96ec9c45006fe50c37d60eb36e7ab4c437f9c5664aa6da",
+      "git_blob_sha1": "b1c1c6b26d26c2babc0ee16d4295e6413fc1a72e"
+    },
+    {
+      "path": "Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner-frameworks-Release-input-files.xcfilelist",
+      "bytes": 141,
+      "sha256": "94e9a16c59af4c6743c07f437feae92046eca62a990d98f342a5aec15bc811b0",
+      "git_blob_sha1": "c87f36a14dd06598d40f2601b6afbc151ad41e6c"
+    },
+    {
+      "path": "Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner-frameworks-Release-output-files.xcfilelist",
+      "bytes": 68,
+      "sha256": "cf77366cb224b4b19b96ec9c45006fe50c37d60eb36e7ab4c437f9c5664aa6da",
+      "git_blob_sha1": "b1c1c6b26d26c2babc0ee16d4295e6413fc1a72e"
+    },
+    {
+      "path": "Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner-frameworks.sh",
+      "bytes": 8466,
+      "sha256": "7ae50924e14fd36686500a55e0e8d80a08618cf73400c92dd1c2d205858d0fbd",
+      "git_blob_sha1": "6dba44b5879d3089bcd644da78b40ec095f2fdbc"
+    },
+    {
+      "path": "Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner-Info.plist",
+      "bytes": 828,
+      "sha256": "9151dcebe4456d5ac62abfae17df067bf280a753b127006461bad2ea3af420aa",
+      "git_blob_sha1": "2243fe6e27dc60546f37eca17f97ed75802d224f"
+    },
+    {
+      "path": "Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner-umbrella.h",
+      "bytes": 326,
+      "sha256": "c705834592b7fb54098abcafce9dd95b3c083e86703fe23a4e790a3278c23efb",
+      "git_blob_sha1": "d59c45f9ceca4e2db329de2d3e69418a31fdb9b2"
+    },
+    {
+      "path": "Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner.debug.xcconfig",
+      "bytes": 432,
+      "sha256": "7ed5ef9c50a99d30dd1ea4b8140b6aab6d1cf444d323fa395fb29a84d43b203c",
+      "git_blob_sha1": "26f2c77366c5751de05651accf0e5889e2d63cae"
+    },
+    {
+      "path": "Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner.modulemap",
+      "bytes": 124,
+      "sha256": "9710d07ae0f4fc429f231d51ddfa41e309df6288a1d9bf79a7da762fe09697ae",
+      "git_blob_sha1": "9a3b4642e8c3ea3e4d79f9853e73ca764a55b34b"
+    },
+    {
+      "path": "Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner.release.xcconfig",
+      "bytes": 432,
+      "sha256": "7ed5ef9c50a99d30dd1ea4b8140b6aab6d1cf444d323fa395fb29a84d43b203c",
+      "git_blob_sha1": "26f2c77366c5751de05651accf0e5889e2d63cae"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1191,
+      "sha256": "101ea9d438ee0c15ecbb0d813c60e5e4f6943c0b4b0e795c46a4af06d4e91d71",
+      "git_blob_sha1": "325db554bca729f0a4ad9c6d2db7945e7b54c5a3"
+    },
+    {
+      "path": "scripts/integrate.py",
+      "bytes": 4690,
+      "sha256": "b164e0d1fee8e35c4a1f51cb116874baf2b38f3ce9f6bcdae14b3edaa1aa41fb",
+      "git_blob_sha1": "ff58ca6133a1f74eb03418e56e4e5c1a9be99782"
+    },
+    {
+      "path": "StrayScanner/AppDelegate.swift",
+      "bytes": 3821,
+      "sha256": "4c2141314f1cf49269840ae0476f91f398a3ce396a42dbc0eeb338c6269785b6",
+      "git_blob_sha1": "b7df1e39ae8c7b5d75e1e072d50bc5c8e97a7ed6"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/1024.png",
+      "bytes": 129,
+      "sha256": "dcbb01d41c02f21dc7a15eb5c85a23e3be74e6f856cf652ad52763950b79ad40",
+      "git_blob_sha1": "70e6b0dbf6f3704a850233492ffba5ad5274f96c"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/120-1.png",
+      "bytes": 129,
+      "sha256": "cc0a2e0c9025ebe4b9d2a08d4c80ef7fb0b30026fec4ebf4f575cbfca25cbc0e",
+      "git_blob_sha1": "130558f7bb7b500009422bc68455d79e011946a8"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/120.png",
+      "bytes": 129,
+      "sha256": "cc0a2e0c9025ebe4b9d2a08d4c80ef7fb0b30026fec4ebf4f575cbfca25cbc0e",
+      "git_blob_sha1": "130558f7bb7b500009422bc68455d79e011946a8"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/152.png",
+      "bytes": 129,
+      "sha256": "e45017b828c943b6a57181bd0c176065b1844537da0df5ca0ca770ede1d5370b",
+      "git_blob_sha1": "ebdd68ec2cd0f6b43b8baf5126ee193e9b1fc7a1"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/167.png",
+      "bytes": 129,
+      "sha256": "8cad6dbd09f5051f58a89d363293a0d5ea7191824f02894aac2e1177f9548c21",
+      "git_blob_sha1": "fbccd340c720623105ca028f8f0a2ee3b7a24496"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/180.png",
+      "bytes": 129,
+      "sha256": "ac0e33155be01fc4edec2f3d1defc94323beed4720fb5d5f256206a060872cdf",
+      "git_blob_sha1": "a261b087d20539cbc658ab462133b2c32980276a"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/20.png",
+      "bytes": 128,
+      "sha256": "426134638173de4aa72d64a1d413186d2bec2f15f7132d19f526af9695876272",
+      "git_blob_sha1": "f2a81d69ab283bcfd0e29c4ca58f62710aaf3ec7"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/29.png",
+      "bytes": 128,
+      "sha256": "39ca08de74b5e598046ed03ddfb8d14e0f92e5541ea2423d6e60c5629adff0c6",
+      "git_blob_sha1": "eb7574060a3016d003deaf4f6bc2980b2b761426"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/40-1.png",
+      "bytes": 129,
+      "sha256": "80e073f82c36a27e2f2d09f907ea98b318c915d6fcc0c5da4da92516bf5d44d4",
+      "git_blob_sha1": "2e7f0158e8946aeb1cccebf7531c0b6533f6da32"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/40-2.png",
+      "bytes": 129,
+      "sha256": "80e073f82c36a27e2f2d09f907ea98b318c915d6fcc0c5da4da92516bf5d44d4",
+      "git_blob_sha1": "2e7f0158e8946aeb1cccebf7531c0b6533f6da32"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/40.png",
+      "bytes": 129,
+      "sha256": "80e073f82c36a27e2f2d09f907ea98b318c915d6fcc0c5da4da92516bf5d44d4",
+      "git_blob_sha1": "2e7f0158e8946aeb1cccebf7531c0b6533f6da32"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/58-1.png",
+      "bytes": 129,
+      "sha256": "3e9c137e4152ff8621af365aaa04039fa9c1a402d9d750de396e03f35cc5254f",
+      "git_blob_sha1": "15836df2bd6cfafc468fa8b5aad9070c6718fe4d"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/58.png",
+      "bytes": 129,
+      "sha256": "3e9c137e4152ff8621af365aaa04039fa9c1a402d9d750de396e03f35cc5254f",
+      "git_blob_sha1": "15836df2bd6cfafc468fa8b5aad9070c6718fe4d"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/60.png",
+      "bytes": 129,
+      "sha256": "7d7c0e3d68f092d72de959279e45d05f381ba2dcb7881c558a44baf307e1ee46",
+      "git_blob_sha1": "1377ebc502c5db1f94ab07004c7a1c9b24823027"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/76.png",
+      "bytes": 129,
+      "sha256": "42eb7af43768c719ad9c2466b48d6a2d9ad562fa4880c6589f93fc96aaf05d85",
+      "git_blob_sha1": "482a2a350a0057df50d0279ae77c3e912c2613cf"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/80-1.png",
+      "bytes": 129,
+      "sha256": "f5e211694d3a76b7c3a167b67dbd231569af7d03407da736d63d4f26de97b71a",
+      "git_blob_sha1": "145fb6b2c4d69c7917dd7ab4be2d708d77d0bfaf"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/80.png",
+      "bytes": 129,
+      "sha256": "f5e211694d3a76b7c3a167b67dbd231569af7d03407da736d63d4f26de97b71a",
+      "git_blob_sha1": "145fb6b2c4d69c7917dd7ab4be2d708d77d0bfaf"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/87.png",
+      "bytes": 129,
+      "sha256": "aa14e403c742b14c8d0cf5afeb8aae5fb17230ef3643f9ff0f14e1e9805f4716",
+      "git_blob_sha1": "0c7eb01ad89607d82e7febcfb9f0e50ecc97c54f"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/AppIcon.appiconset/Contents.json",
+      "bytes": 2130,
+      "sha256": "bedbd0f434fedb45476b63fc8f77fb9ef33f3a660b5c0308a1b39ce3882e0051",
+      "git_blob_sha1": "ce5b7f9beb995f1eed1ea07c088069562ad7a348"
+    },
+    {
+      "path": "StrayScanner/Assets.xcassets/Contents.json",
+      "bytes": 63,
+      "sha256": "0fd49ba3c3585c709678e0046a821c3c60685ec7063720d30d3a3448be3a208b",
+      "git_blob_sha1": "73c00596a7fca3f3d4bdd64053b69d86745f9e10"
+    },
+    {
+      "path": "StrayScanner/BridgeHeader.h",
+      "bytes": 274,
+      "sha256": "f023a8ff683e54c99c55e617e22354197a16e9cffc0e0aefae7004caa2ff5e50",
+      "git_blob_sha1": "ed5e367fdf7c4f4e2f7939f7f0b35d089467f63e"
+    },
+    {
+      "path": "StrayScanner/CCode/lodepng.cpp",
+      "bytes": 265070,
+      "sha256": "e96895a099ad91e59e2e9f3d79dc3c8d629d7a20c1d8eb8e0730269abf5022e0",
+      "git_blob_sha1": "3d369f126bf8661ef1d6a19848f5a8e684b00fd0"
+    },
+    {
+      "path": "StrayScanner/CCode/lodepng.h",
+      "bytes": 97491,
+      "sha256": "91ee6d4dd50f1f80926d12c170118d0e2088915b6b2b78faaf58ecad203e5fcc",
+      "git_blob_sha1": "685e7850cbd802d1a594ac72ed3617bfa6e91087"
+    },
+    {
+      "path": "StrayScanner/CCode/PngEncoder.h",
+      "bytes": 399,
+      "sha256": "6067253859789062620754549e833f9f5bf88ddafeff90b3d87851ff76ee7b76",
+      "git_blob_sha1": "ddc0370352787fa0c1c06aa0f94674dba0ae19a6"
+    },
+    {
+      "path": "StrayScanner/CCode/PngEncoder.mm",
+      "bytes": 1274,
+      "sha256": "8e15759955b90b71c2ed2bb6fb571b15d4dbecb09707da506aa09efa84350e23",
+      "git_blob_sha1": "3bb23b370611262b927c8ea0ea8f5e2d97cdcc05"
+    },
+    {
+      "path": "StrayScanner/CCode/StrayScannerTests-Bridging-Header.h",
+      "bytes": 104,
+      "sha256": "6c5a19aee47149288090a2b9d5718fc04c256d686d787ab38533e87411317a0e",
+      "git_blob_sha1": "1b2cb5d6d09fe5019d2f930632eaa15b4e51aedc"
+    },
+    {
+      "path": "StrayScanner/Controllers/RecordSessionViewController.swift",
+      "bytes": 11114,
+      "sha256": "67c5ce5deb2d6b21beb4eb0b823ad85832a753ea435f898ab5b8b48b3ec64ca3",
+      "git_blob_sha1": "088e1e8e06bcd588cab6cf5e722edac7c458d5f1"
+    },
+    {
+      "path": "StrayScanner/Helpers/AppDaemon.swift",
+      "bytes": 2124,
+      "sha256": "8474b40b08da03f7cc39cd90cb2a3e1bb0813041a1d461b54c0e62c7c1a7c56f",
+      "git_blob_sha1": "8cd1c1958bde854e61771476803ee708f71a6fbc"
+    },
+    {
+      "path": "StrayScanner/Helpers/CameraRenderer.swift",
+      "bytes": 7861,
+      "sha256": "9a2fb8f3f234b860f0f5afb6625f2ccd82928b0d7871eeb13ae0544d48058172",
+      "git_blob_sha1": "5413e4eb1ef93a1c47d3af307241cc6f3e0f6265"
+    },
+    {
+      "path": "StrayScanner/Helpers/ConfidenceEncoder.swift",
+      "bytes": 1846,
+      "sha256": "87b353418fcb4f01f97107d294732b1563b7977cffe532f7b38384d018839d05",
+      "git_blob_sha1": "c724b91b7267d05c92cd0ef9d36ee9a0a339fdf5"
+    },
+    {
+      "path": "StrayScanner/Helpers/DatasetEncoder.swift",
+      "bytes": 8546,
+      "sha256": "525f8b4ea8b93cffc3f0a87a4e5fb229760b4047925b34b0e0252d04e39f1584",
+      "git_blob_sha1": "116a3754c433fc75b0c7692c30b5138a21c1b6da"
+    },
+    {
+      "path": "StrayScanner/Helpers/DepthEncoder.swift",
+      "bytes": 1995,
+      "sha256": "5d61c3f77a004c6ef77738605fe2f7496d9315142718fd7ba67e2ea6bfc97dd6",
+      "git_blob_sha1": "b623cb0a1e5dc10f570841609699beb5a4aeaef0"
+    },
+    {
+      "path": "StrayScanner/Helpers/DistortionEncoder.swift",
+      "bytes": 1446,
+      "sha256": "4337bf0be8dcf73e2d00bd6230729d227fed3ef229c9e0109743ee62790d1328",
+      "git_blob_sha1": "d1ee08a8f73cfaf98be91c6bd48cbb989dab018f"
+    },
+    {
+      "path": "StrayScanner/Helpers/IMUEncoder.swift",
+      "bytes": 1425,
+      "sha256": "36081afdc09f5a8a0afbdbb2740b85fbb1a5c14f40d832d8b93ae31f742ae955",
+      "git_blob_sha1": "5e9d7808c6ecf9af9658bc84e2f6726d4a4ff473"
+    },
+    {
+      "path": "StrayScanner/Helpers/OdometryEncoder.swift",
+      "bytes": 2365,
+      "sha256": "3613d3521833b5137763578cc64f8604b8b4a73aceff3b02e7a980d5d1740bd3",
+      "git_blob_sha1": "2b13b0ec760f911c0e4590c90bd9c304baa1e167"
+    },
+    {
+      "path": "StrayScanner/Helpers/ShareUtility.swift",
+      "bytes": 2074,
+      "sha256": "c6376aead1f8740e85f9cee36de118181abb11d235864f70d1ef17c97530a09b",
+      "git_blob_sha1": "da404f6cc19569a1eb12a21c6844fbc2f81473a5"
+    },
+    {
+      "path": "StrayScanner/Helpers/VideoEncoder.swift",
+      "bytes": 3757,
+      "sha256": "86099a63939c61b9805d2da50374788f57b198273a3bb9ce228f4cc69945af43",
+      "git_blob_sha1": "bdefa52fbf9ebe769877918844f35d1b57b501c2"
+    },
+    {
+      "path": "StrayScanner/Info-debug.plist",
+      "bytes": 2048,
+      "sha256": "97e905f1326716c62c64a32944692695e52989ff7a25dc5b5442a83677dbeb9d",
+      "git_blob_sha1": "3a8f2c8277b3ceec1a89140352c986cc984571ad"
+    },
+    {
+      "path": "StrayScanner/Info.plist",
+      "bytes": 2042,
+      "sha256": "52d9d743c4df92a0646722ffa21b51c83f6a2acd3582fa91b5b94b2b50e2fa4d",
+      "git_blob_sha1": "58ee91eea34df9f3380752b93eccc1b9125725f9"
+    },
+    {
+      "path": "StrayScanner/Models/Recording+CoreDataClass.swift",
+      "bytes": 850,
+      "sha256": "3b7a6c85a9093ece6b2c7c87ba643446af1168a93ead2728d5bfc715f0f6f293",
+      "git_blob_sha1": "44ceaeb50b9bc06c2427f49650baa8f653847c60"
+    },
+    {
+      "path": "StrayScanner/Models/Recording+CoreDataProperties.swift",
+      "bytes": 1489,
+      "sha256": "25c06a50a00d002338f182cc3ef31860bf49a99add18f5e821679ef94e837344",
+      "git_blob_sha1": "aa78c00630ff06e55875ac99f19053e21a2adea1"
+    },
+    {
+      "path": "StrayScanner/Preview Content/Preview Assets.xcassets/Contents.json",
+      "bytes": 63,
+      "sha256": "0fd49ba3c3585c709678e0046a821c3c60685ec7063720d30d3a3448be3a208b",
+      "git_blob_sha1": "73c00596a7fca3f3d4bdd64053b69d86745f9e10"
+    },
+    {
+      "path": "StrayScanner/Resources/Colors.xcassets/BackgroundColor.colorset/Contents.json",
+      "bytes": 679,
+      "sha256": "60993957d5502bea98531fbb6aab85f13e5ad9cb070adf1a63a738afdf45db6e",
+      "git_blob_sha1": "ead3bd8dfbeaac56fb9e3a6469eeb1ac94190b0b"
+    },
+    {
+      "path": "StrayScanner/Resources/Colors.xcassets/Contents.json",
+      "bytes": 63,
+      "sha256": "0fd49ba3c3585c709678e0046a821c3c60685ec7063720d30d3a3448be3a208b",
+      "git_blob_sha1": "73c00596a7fca3f3d4bdd64053b69d86745f9e10"
+    },
+    {
+      "path": "StrayScanner/Resources/Colors.xcassets/DangerColor.colorset/Contents.json",
+      "bytes": 695,
+      "sha256": "dadb7c37d3114f9cb21eff91252022737acd3bbcf5e5500ba73bb7044e9c643d",
+      "git_blob_sha1": "3dc99e2498b3683dd62eef5e585245b2d60d95e7"
+    },
+    {
+      "path": "StrayScanner/Resources/Colors.xcassets/DarkColor.colorset/Contents.json",
+      "bytes": 695,
+      "sha256": "5cdb065bdaa9604934cfd755838d42ce7133f694701b599968cd1d3985aea846",
+      "git_blob_sha1": "70d2c831572798bba6253494844c488deb82dc3e"
+    },
+    {
+      "path": "StrayScanner/Resources/Colors.xcassets/LightColor.colorset/Contents.json",
+      "bytes": 695,
+      "sha256": "37697192063ae8181296e8a9195bfd86a5b8e7a1ae885b3755bb20a99eaa2742",
+      "git_blob_sha1": "bdbae16f712c83ad9d60e8ae4de1c2f8a986647b"
+    },
+    {
+      "path": "StrayScanner/Resources/Colors.xcassets/MediumGrey.colorset/Contents.json",
+      "bytes": 695,
+      "sha256": "760bc0f51cb3627dcbac0b45babf9dafba01bb0832243193829e23b764bbd254",
+      "git_blob_sha1": "f7baa57d18f03793340511f674d9bf0211fe6e2d"
+    },
+    {
+      "path": "StrayScanner/Resources/Colors.xcassets/TextColor.colorset/Contents.json",
+      "bytes": 695,
+      "sha256": "5cdb065bdaa9604934cfd755838d42ce7133f694701b599968cd1d3985aea846",
+      "git_blob_sha1": "70d2c831572798bba6253494844c488deb82dc3e"
+    },
+    {
+      "path": "StrayScanner/SceneDelegate.swift",
+      "bytes": 3333,
+      "sha256": "0aeefc510c6d2d020a6e7a089eacbd3f82917a7c3c6148d0a4e8f84980765d68",
+      "git_blob_sha1": "40bb0578b0061e70a1d8609703758cb7810329f4"
+    },
+    {
+      "path": "StrayScanner/Shaders/Shaders.metal",
+      "bytes": 2387,
+      "sha256": "701c6e3eca236578206aad9ba151fd14711d79750e4a65cad1e90d7637123369",
+      "git_blob_sha1": "160071b4c152c9c80c90ec9cea3da40dcf5db963"
+    },
+    {
+      "path": "StrayScanner/Shaders/ShaderTypes.h",
+      "bytes": 298,
+      "sha256": "dc709defbcc36ef766565899485d55be45acbe82fb91f9fe438dd23b7863ceaf",
+      "git_blob_sha1": "2132fb64c4ea23cc32f0e75235d763ecfff34d9a"
+    },
+    {
+      "path": "StrayScanner/Stray_Scanner.xcdatamodeld/.xccurrentversion",
+      "bytes": 266,
+      "sha256": "8d4fcff95145b5e8cd57ce7a1e528a850e7aaa3b29c8c1014b424952428654b8",
+      "git_blob_sha1": "87b9a79305ac8cf7ba26f9b2c83a6197a5c90198"
+    },
+    {
+      "path": "StrayScanner/Stray_Scanner.xcdatamodeld/Stray_Scanner.xcdatamodel/contents",
+      "bytes": 1056,
+      "sha256": "138dfca6284eecc6cf48c1a0cde7c14a82f04a225e3e3dab516b414516519c41",
+      "git_blob_sha1": "2a1edd37714873a9577bd8bedf2bf32304ad5648"
+    },
+    {
+      "path": "StrayScanner/UI/Base.lproj/LaunchScreen.storyboard",
+      "bytes": 3785,
+      "sha256": "5d8e7e43fcebdfd4462d025661379f9c4f3912c128e3e9d36af8c4b68ce6cfc4",
+      "git_blob_sha1": "253b61ab8e735dfde60e3041187c162e73d6dbd8"
+    },
+    {
+      "path": "StrayScanner/UI/RecordSessionView.xib",
+      "bytes": 11260,
+      "sha256": "88c54b9c74b0a2d484f1a27c9bb2ef23fd001b9cb06c70be2e1e42a0ddcdf2de",
+      "git_blob_sha1": "195087f9f768da55932c18ab90ca9ebccfb42f4b"
+    },
+    {
+      "path": "StrayScanner/Views/InformationView.swift",
+      "bytes": 3412,
+      "sha256": "12fed89a939140a110818322b8e2b69221d0cca606bc12bb154434174a891b3d",
+      "git_blob_sha1": "03eebfbfa909417dfec06fc8759ffc7648b6d94d"
+    },
+    {
+      "path": "StrayScanner/Views/NewSession.swift",
+      "bytes": 1882,
+      "sha256": "e6b25a03510353b0eb29b3893afce449a35a44583e758af6dcc55d23bac42bb0",
+      "git_blob_sha1": "50481f85699d45671361ba4decbc5e8f95203c8b"
+    },
+    {
+      "path": "StrayScanner/Views/RecordButton.swift",
+      "bytes": 5191,
+      "sha256": "2eb3313360f5aa8808a642cbf5f533ab5695f3a7d5b3f8dc0b24975b261b3cb5",
+      "git_blob_sha1": "0d552d0d6d2d1110e83fd149746ee41538c0992e"
+    },
+    {
+      "path": "StrayScanner/Views/SessionDetail.swift",
+      "bytes": 6210,
+      "sha256": "51a37617f68087c163342516c3476ffcf161881cc3d50998007cd2bf51a0849e",
+      "git_blob_sha1": "d2373872dab06d807b0b5cfc773f2276944f641b"
+    },
+    {
+      "path": "StrayScanner/Views/SessionList.swift",
+      "bytes": 4903,
+      "sha256": "7c0042fbdecd9792f4fff5cf5e0212d40b33c3e8a6667f139547e88f94a16b8b",
+      "git_blob_sha1": "1f75d114d7cdfcea1f01673c5b79d97c8e07fe1d"
+    },
+    {
+      "path": "StrayScanner/Views/SessionRow.swift",
+      "bytes": 1090,
+      "sha256": "798aed518b23051f53e60e5b619dc6a6abad7f3763deaf3f9123bbe7fc7aa574",
+      "git_blob_sha1": "b8e2d93e3c90fa94f15c952127f0bc3f60c3d8b9"
+    },
+    {
+      "path": "StrayScanner.xcodeproj/project.pbxproj",
+      "bytes": 47716,
+      "sha256": "bf4334c277627173e38dd9a06deac2f1e9b0ecd044507d0204b62d32595321bc",
+      "git_blob_sha1": "fa6c9aa571740f5a3cc137e2e82be4b1f86d479d"
+    },
+    {
+      "path": "StrayScanner.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
+      "bytes": 157,
+      "sha256": "e90d508a89021ad97b6d5020898b46259987e9ad99fbfd308beb41a59d96755e",
+      "git_blob_sha1": "56b2bb0711d4530f50f6cba68d14271a135f190c"
+    },
+    {
+      "path": "StrayScanner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist",
+      "bytes": 238,
+      "sha256": "dfa0f9bb85b95ccba9c6811adadf8cb407fb5d52088e89db83ebc308ec448542",
+      "git_blob_sha1": "18d981003d68d0546c4804ac2ff47dd97c6e7921"
+    },
+    {
+      "path": "StrayScanner.xcodeproj/xcshareddata/xcschemes/StrayScanner.xcscheme",
+      "bytes": 3330,
+      "sha256": "50f87a2c5cb6654c7e8f2a48b0076c74689e76d4d7afe0a41789f82463d5333f",
+      "git_blob_sha1": "defef874d4eabe32e22f63cfcd8f6efa968ead49"
+    },
+    {
+      "path": "StrayScanner.xcworkspace/contents.xcworkspacedata",
+      "bytes": 230,
+      "sha256": "1a9dd1b6ec71be9f0c05b2c28ca1a0a3545a088c03897ee5fe5ec0c3aed201e9",
+      "git_blob_sha1": "1e7cd586859692a9725c63baf74e4d1859247e55"
+    },
+    {
+      "path": "StrayScanner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist",
+      "bytes": 238,
+      "sha256": "dfa0f9bb85b95ccba9c6811adadf8cb407fb5d52088e89db83ebc308ec448542",
+      "git_blob_sha1": "18d981003d68d0546c4804ac2ff47dd97c6e7921"
+    },
+    {
+      "path": "StrayScannerTests/Info.plist",
+      "bytes": 727,
+      "sha256": "7d56eaac02367c81f9d19cc1108e8f725cd86af2b4538a4894053a6639c1a4a0",
+      "git_blob_sha1": "64d65ca495770bdc9600e58687865b73a36bed3a"
+    },
+    {
+      "path": "StrayScannerTests/Stray_ScannerTests.swift",
+      "bytes": 1005,
+      "sha256": "0df9eaaa02ac4ba874dee7812586ada77e030fcfb21d69ccadf770fca2d78e87",
+      "git_blob_sha1": "bc048430ffaa268e6754707883132efc84949135"
+    },
+    {
+      "path": "StrayScannerTests/StrayScannerTests.swift",
+      "bytes": 1922,
+      "sha256": "e39991e1d1a5b3d2913b3d29ad5bc4d7f79ba7414726b19bdf2cec58db43caa5",
+      "git_blob_sha1": "3d4ff2955c4a06f74ee591b44a941b95acd508e2"
+    }
+  ]
+}

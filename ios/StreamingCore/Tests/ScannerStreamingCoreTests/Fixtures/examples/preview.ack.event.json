@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "type": "preview.ack",
+  "kind": "event",
+  "id": "pc-201",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "session_id": "3f6c2a1e-8b4d-4e5f-9a0b-1c2d3e4f5a6b",
+    "frame_id": 1873,
+    "preview_seq": 312,
+    "received_qpc_ticks": "103680001456789",
+    "result": "accepted"
+  }
+}

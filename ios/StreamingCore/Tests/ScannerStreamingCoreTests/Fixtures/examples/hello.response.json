@@ -1,0 +1,47 @@
+{
+  "v": 1,
+  "type": "hello",
+  "kind": "response",
+  "id": "pc-1",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "reply_to": "ph-1",
+  "ok": true,
+  "body": {
+    "socket": "preview",
+    "protocol_version": "1.0",
+    "preview_layout_version": 1,
+    "chunk_layout_version": 1,
+    "connection_id": "5a9e3d71-0c2b-4f86-a1d4-7e6b5c4d3a21",
+    "qpc_frequency_hz": 10000000,
+    "pc": {
+      "pc_id": "c0ffee00-1234-4abc-8def-0123456789ab",
+      "display_name": "SCANNER-PC",
+      "app_version": "0.1.0",
+      "source_revision": "4f2a9c1"
+    },
+    "credential": {
+      "device_id": "8d1e5c2b-6a7f-4b3c-9d0e-2f1a3b4c5d6e",
+      "secret": "q3Vb1xZr8T0mYc2Lk5Hn7Jp9Wd4Fs6Ga0Re3Ut5Io7P"
+    },
+    "limits": {
+      "max_text_bytes": 1048576,
+      "max_binary_bytes": 4194304,
+      "chunk_bytes": 1048576,
+      "window_chunks": 16,
+      "preview_inflight_max": 2,
+      "status_interval_ms": 2000,
+      "ping_interval_ms": 1000,
+      "idle_timeout_ms": 10000
+    },
+    "preview_profile": {
+      "rgb_codec": "jpeg",
+      "rgb_width": 640,
+      "rgb_height": 480,
+      "rgb_quality": 0.6,
+      "depth_codec": "u16",
+      "depth_scale_m_per_unit": 0.001,
+      "confidence": true,
+      "target_hz": 10
+    }
+  }
+}

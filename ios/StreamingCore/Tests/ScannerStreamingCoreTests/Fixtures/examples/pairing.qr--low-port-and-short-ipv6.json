@@ -1,0 +1,13 @@
+{
+  "s3d": "pair",
+  "v": 1,
+  "pc_id": "c0ffee00-1234-4abc-8def-0123456789ab",
+  "pc_name": "SCANNER-PC",
+  "addrs": [
+    "169.254.10.20:443",
+    "[fd00::1]:8443"
+  ],
+  "fp": "4b2e7f1c9a0d38e6b5c4a39281f0e7d6c5b4a3928170f6e5d4c3b2a190807f6e",
+  "tok": "7Q4K9M2X",
+  "exp": 1792544763
+}

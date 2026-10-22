@@ -1,0 +1,10 @@
+{
+  "v": 1,
+  "type": "ping",
+  "kind": "request",
+  "id": "pc-88",
+  "sent_at": "2026-10-20T22:41:03.512Z",
+  "body": {
+    "t_pc_tx_qpc_ticks": "103680001234567"
+  }
+}
