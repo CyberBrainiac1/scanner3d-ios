@@ -43,6 +43,20 @@ class CustomProjectTests(unittest.TestCase):
             {'name': 'iPhone 17', 'udid': 'good', 'isAvailable': True},
             {'name': 'iPhone 18', 'udid': 'missing', 'isAvailable': False}]
         self.assertEqual(choose(old), 'good')
+        old['devices']['com.apple.CoreSimulator.SimRuntime.iOS-26-2'] = [{'name': 'iPhone 17 Pro', 'udid': 'newer', 'isAvailable': True}]
+        self.assertEqual(choose(old), 'newer')
+        self.assertEqual(choose(old, (26, 1)), 'good')
+
+    def test_xcode_selection_needs_sdk_for_unchanged_target_and_skips_betas(self):
+        choose = module('xcode', IOS / 'tools/select_xcode.py').select
+        old = [('/old', 'Xcode_16.4.app', ['18.5'])]
+        with self.assertRaises(ValueError): choose(old)
+        candidates = old + [('/new', 'Xcode_26.1.app', ['26.1']), ('/beta', 'Xcode_26.3_beta.app', ['26.3'])]
+        self.assertEqual(choose(candidates), ('/new', '26.1'))
+
+    def test_debug_builds_only_active_arch_like_the_swift_package(self):
+        text = (IOS / 'ScannerApp/ScannerApp.xcodeproj/project.pbxproj').read_text(encoding='utf-8')
+        self.assertEqual(text.count('"ONLY_ACTIVE_ARCH" = "YES"'), 3)
 
 
 if __name__ == '__main__': unittest.main()

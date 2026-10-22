@@ -14,6 +14,14 @@ if [ -d ios/upstream ]; then python3 ios/tools/verify_upstream.py; else echo "io
 python3 ios/ScannerApp/tools/generate_project.py --check
 python3 ios/ScannerApp/tools/static_check.py
 python3 -m unittest discover -s ios/tests -v
+# The runner's default Xcode may predate the unchanged iOS 18.6 target; pick an installed one that supports it.
+if [[ -z "${DEVELOPER_DIR:-}" ]]; then
+  read -r DEVELOPER_DIR ios_sdk < <(python3 ios/tools/select_xcode.py)
+  export DEVELOPER_DIR
+else
+  ios_sdk=$(xcrun --sdk iphoneos --show-sdk-version)
+fi
+echo "Using DEVELOPER_DIR=$DEVELOPER_DIR (iOS SDK $ios_sdk)"
 {
   xcodebuild -version
   xcode-select -p
@@ -27,7 +35,7 @@ swift test --package-path ios/StreamingCore --scratch-path "$build_root/Streamin
 
 # Pick an available iPhone simulator with a runtime >= the app's unchanged 18.6 deployment target.
 xcrun simctl list devices available --json > "$build_root/artifacts/simulators.json"
-sim_id=$(python3 ios/tools/select_simulator.py "$build_root/artifacts/simulators.json")
+sim_id=$(python3 ios/tools/select_simulator.py "$build_root/artifacts/simulators.json" --sdk "$ios_sdk")
 settings=(CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= DEVELOPMENT_TEAM=)
 common=(-project ios/ScannerApp/ScannerApp.xcodeproj -scheme ScannerApp -derivedDataPath "$build_root/DerivedData")
 xcodebuild "${common[@]}" -configuration Debug -destination "platform=iOS Simulator,id=$sim_id" \

@@ -5,14 +5,15 @@ import re
 from pathlib import Path
 
 
-def select(document):
+def select(document, newest=None):
+    """newest: optional (major, minor) iOS SDK of the selected Xcode; newer runtimes are skipped."""
     choices = []
     for runtime, devices in document.get('devices', {}).items():
         match = re.search(r'\.iOS-(\d+)-(\d+)(?:-(\d+))?$', runtime)
         if not match:
             continue
         version = tuple(int(part or 0) for part in match.groups())
-        if version < (18, 6, 0):
+        if version < (18, 6, 0) or (newest is not None and version[:2] > tuple(newest)):
             continue
         for device in devices:
             if device.get('isAvailable') is True and device.get('name', '').startswith('iPhone'):
@@ -25,5 +26,7 @@ def select(document):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('inventory', type=Path)
+    parser.add_argument('--sdk', help='iOS SDK version of the selected Xcode, e.g. 26.2')
     args = parser.parse_args()
-    print(select(json.loads(args.inventory.read_text())))
+    newest = tuple(int(part) for part in args.sdk.split('.')[:2]) if args.sdk else None
+    print(select(json.loads(args.inventory.read_text()), newest))

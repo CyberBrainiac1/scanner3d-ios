@@ -118,7 +118,7 @@ final class ScannerModel {
         defer { busy = false }
         if recording {
             do { try await engine.stop(); recording = false; message = "Saved on iPhone" }
-            catch { error = "Could not finalize this scan: \(error.localizedDescription). Its files are retained." }
+            catch { self.error = "Could not finalize this scan: \(error.localizedDescription). Its files are retained." }
             UIApplication.shared.isIdleTimerDisabled = false
         } else {
             do {

@@ -38,7 +38,12 @@ private struct ScanScreen: View {
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 18))
             Text(model.linkMessage).font(.subheadline).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
-            if let error = model.error { Text(error).font(.subheadline).foregroundStyle(.orange).accessibilityLiveRegion(.assertive) }
+            if let error = model.error {
+                // SwiftUI has no live-region modifier; announce the message to VoiceOver when it appears or changes.
+                Text(error).font(.subheadline).foregroundStyle(.orange)
+                    .onAppear { AccessibilityNotification.Announcement(error).post() }
+                    .onChange(of: error) { _, message in AccessibilityNotification.Announcement(message).post() }
+            }
             DisclosureGroup("Details") {
                 LabeledContent("Saved frames", value: String(model.frames))
                 LabeledContent("High-resolution photos", value: String(model.stills))
