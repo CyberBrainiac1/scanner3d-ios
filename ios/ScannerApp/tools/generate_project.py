@@ -58,7 +58,10 @@ def generate():
             settings.update(SWIFT_OPTIMIZATION_LEVEL='-Onone' if configuration == 'Debug' else '-O',
                             DEBUG_INFORMATION_FORMAT='dwarf' if configuration == 'Debug' else 'dwarf-with-dsym',
                             ENABLE_TESTABILITY='YES' if configuration == 'Debug' else 'NO')
-            if configuration == 'Debug': settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] = 'DEBUG'
+            if configuration == 'Debug':
+                settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] = 'DEBUG'
+                # Swift package products build only the active simulator arch in Debug; match it.
+                settings['ONLY_ACTIVE_ARCH'] = 'YES'
             values.append(add(name + '-' + configuration, 'XCBuildConfiguration', buildSettings=settings, name=configuration))
         return add(name + '-configurations', 'XCConfigurationList', buildConfigurations=values,
                    defaultConfigurationIsVisible=0, defaultConfigurationName='Release')
