@@ -48,7 +48,7 @@ public actor SocketWriter {
     public func run() async throws {
         while !Task.isCancelled {
             if try await sendOne() { continue }
-            let nap = Task { try? await Task.sleep(nanoseconds: idleSleep) }
+            let nap = Task<Void, Never> { _ = try? await Task.sleep(nanoseconds: idleSleep) }
             sleeper = nap
             await nap.value
             sleeper = nil
