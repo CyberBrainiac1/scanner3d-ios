@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import UIKit
+import ARKit
 import ScannerStreamingCore
 
 @MainActor @Observable
@@ -65,7 +66,7 @@ final class ScannerModel {
         didSet { UserDefaults.standard.set(autoLight, forKey: "autoLight"); engine.setAutoLight(autoLight) }
     }
     func dismissCard() { if let card, card.dismissable { dismissedPCTips.insert(card.key) } }
-    private var currentSessionID: UUID?
+    private(set) var currentSessionID: UUID?
     private var lifetimeEpoch = UUID()
     private var lastLinkRevision: UInt64 = 0
     private var inventoryEpoch = UUID()
@@ -73,7 +74,30 @@ final class ScannerModel {
     @ObservationIgnored private let parent: URL
     @ObservationIgnored private var reconnectTask: Task<Void, Never>?
     @ObservationIgnored private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
-    @ObservationIgnored private lazy var link: PhoneLink = PhoneLink(
+    // ---- hot-updatable web UI and PC debugging (docs/PHONE-UI-AND-DEBUG.md); the bridge is in ScannerModel+Bridge.swift
+    enum UIMode: String { case native, web }
+    var uiMode: UIMode = .native
+    var bundleVersion: String?
+    var uiNotice: String?
+    var sensors: CaptureEngine.Sensors?
+    var torchState: CaptureEngine.TorchState?
+    var pcViewing = false
+    /// Show the PC's screens (web UI) when a bundle is installed; off after "Use the built-in screens".
+    var preferWebUI: Bool = UserDefaults.standard.object(forKey: "preferWebUI") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(preferWebUI, forKey: "preferWebUI") }
+    }
+    /// "Allow this PC to view and control the app" (on by default, as the user asked).
+    var allowPCDebug: Bool = UserDefaults.standard.object(forKey: "allowPCDebug") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(allowPCDebug, forKey: "allowPCDebug"); PhoneLog.shared.info("PC debugging \(allowPCDebug ? "allowed" : "off")") }
+    }
+    @ObservationIgnored let bundles = UIBundleStore.standard
+    @ObservationIgnored lazy var webUI: WebUIController = makeWebUI()
+    @ObservationIgnored weak var cameraView: ARSCNView?
+    @ObservationIgnored var statePushTask: Task<Void, Never>?
+    @ObservationIgnored var lastPushedState = ""
+    @ObservationIgnored var viewingResetTask: Task<Void, Never>?
+
+    @ObservationIgnored lazy var link: PhoneLink = PhoneLink(
         device: DeviceInfo(modelIdentifier: CaptureEngine.modelIdentifier(), osVersion: UIDevice.current.systemVersion, displayName: "Scan iPhone"),
         state: { [weak self] value in Task { @MainActor in
             guard let self, value.revision > self.lastLinkRevision else { return }
@@ -92,13 +116,22 @@ final class ScannerModel {
         guidance: { [weak self] event in Task { @MainActor in
             guard let self, self.recording, event.sessionID == self.currentSessionID else { return }
             self.pcTip = event.tip; self.coverage = event.coverageScore
-        } })
+        } },
+        bundle: { [weak self] request in
+            guard let self else { return .object(["version": .string(""), "installed": .bool(false), "active": .bool(false), "detail": .string("app closing")]) }
+            return await self.installBundle(request)
+        },
+        debug: { [weak self] type, body in
+            guard let self else { return .error(code: "internal", message: "app closing") }
+            return await self.handleDebug(type: type, body: body)
+        })
 
     init() {
         parent = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Scans", isDirectory: true)
         engine = CaptureEngine(parent: parent)
         engine.setAutoLight(autoLight)
+        startWebUIIfInstalled()
         engine.onStatus = { [weak self] snapshot in Task { @MainActor in
             guard let self else { return }
             guard self.currentSessionID == snapshot.sessionID else { return }
@@ -107,6 +140,7 @@ final class ScannerModel {
             self.freeBytes = snapshot.freeBytes
             if let text = snapshot.message { self.message = text }
             self.localTip = snapshot.guidance
+            self.sensors = snapshot.sensors; self.torchState = snapshot.torch
             do { try await self.link.status(snapshot) } catch { self.linkMessage = "Preview disconnected; recording is safe" }
         } }
         engine.onPreview = { [weak self] id, segment, sequence, bytes in Task { @MainActor in

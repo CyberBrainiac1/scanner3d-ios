@@ -6,25 +6,46 @@ struct ScannerRoot: View {
     @Bindable var model: ScannerModel
 
     var body: some View {
-        TabView {
-            NavigationStack { ScanScreen(model: model) }
-                .tabItem { Label("Scan", systemImage: "camera") }
-            NavigationStack { SavedScans(model: model) }
-                .tabItem { Label("Scans", systemImage: "square.stack.3d.up") }
+        Group {
+            if model.uiMode == .web {
+                WebModeView(model: model)
+            } else {
+                TabView {
+                    NavigationStack { ScanScreen(model: model) }
+                        .tabItem { Label("Scan", systemImage: "camera") }
+                    NavigationStack { SavedScans(model: model) }
+                        .tabItem { Label("Scans", systemImage: "square.stack.3d.up") }
+                }
+                .tint(.black)
+            }
         }
-        .tint(.black)
         .sheet(item: $model.sheet) { sheet in
             switch sheet { case .pairing: PairingScreen(model: model) }
         }
-        .alert("The PC asked to stop", isPresented: Binding(get: { model.remoteStop != nil }, set: { if !$0 { model.remoteStop = nil } })) {
+        // the web UI asks for its own confirmation; this alert serves the built-in screens
+        .alert("The PC asked to stop", isPresented: Binding(get: { model.remoteStop != nil && model.uiMode == .native },
+                                                           set: { if !$0 { model.remoteStop = nil } })) {
             Button("Keep scanning", role: .cancel) { Task { await model.declineRemoteStop() } }
             Button("Stop and save") { Task { await model.confirmRemoteStop() } }
         } message: { Text(model.remoteStop?.reason ?? "Stop this recording and save its files?") }
     }
 }
 
+/// The PC's screens (docs/PHONE-UI-AND-DEBUG.md): the live camera full screen with the web UI over it.
+private struct WebModeView: View {
+    @Bindable var model: ScannerModel
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            CameraSurface(engine: model.engine) { view in model.cameraView = view }.ignoresSafeArea()
+            WebUIView(controller: model.webUI) { model.showNativeUI(remember: true) }.ignoresSafeArea()
+        }
+    }
+}
+
 private struct ScanScreen: View {
     @Bindable var model: ScannerModel
+    @State private var forgetAsked = false
     var body: some View {
         VStack(spacing: 18) {
             HStack {
@@ -32,7 +53,13 @@ private struct ScanScreen: View {
                 Spacer()
                 Text(ScanStatusText.timer(model.elapsed)).monospacedDigit()
             }
-            CameraSurface(engine: model.engine)
+            CameraSurface(engine: model.engine) { view in model.cameraView = view }
+                .overlay(alignment: .topTrailing) {
+                    if model.pcViewing {
+                        Text("PC is viewing").font(.caption).padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(Capsule().fill(.white.opacity(0.85))).foregroundStyle(.secondary).padding(10)
+                    }
+                }
                 .overlay {
                     if !model.recording { ContentUnavailableView("Scan a small object", systemImage: "cube.transparent", description: Text("Use even light. Move slowly around every side.")) }
                 }
@@ -57,6 +84,7 @@ private struct ScanScreen: View {
                     .onChange(of: error) { _, message in AccessibilityNotification.Announcement(message).post() }
             }
             Toggle("Turn on the flashlight when it's dark", isOn: $model.autoLight).font(.subheadline)
+            if let notice = model.uiNotice { Text(notice).font(.footnote).foregroundStyle(.orange) }
             DisclosureGroup("Details") {
                 if let coverage = model.coverage { LabeledContent("Part covered so far (PC estimate)", value: "\(Int((coverage * 100).rounded())) %") }
                 LabeledContent("Saved frames", value: String(model.frames))
@@ -64,7 +92,16 @@ private struct ScanScreen: View {
                 LabeledContent("Camera queue drops", value: String(model.dropped))
                 LabeledContent("Free space", value: ByteCountFormatter.string(fromByteCount: Int64(clamping: model.freeBytes), countStyle: .file))
                 Text("The PC preview is a rough guide. Final reconstruction and accuracy checks happen after the recording closes.").font(.footnote).foregroundStyle(.secondary)
+                Toggle("Allow this PC to view and control the app", isOn: $model.allowPCDebug)
+                if let version = model.bundleVersion {
+                    Button("Use the new screens (\(version))") { model.useWebUI() }.disabled(model.recording)
+                }
+                LabeledContent("App version", value: AppVersion.native)
+                Button("Forget this PC", role: .destructive) { forgetAsked = true }.disabled(model.recording)
             }.font(.subheadline)
+            .confirmationDialog("Forget this PC?", isPresented: $forgetAsked, titleVisibility: .visible) {
+                Button("Forget this PC", role: .destructive) { Task { _ = await model.bridge("forgetPC", [:]) } }
+            } message: { Text("Scans stay on this iPhone. Pair again with the code on the PC.") }
             Button { Task { await model.toggleRecording() } } label: {
                 HStack { if model.busy { ProgressView().tint(.white) }; Text(model.recording ? "Stop and save" : "Start scan").font(.headline) }
                     .frame(maxWidth: .infinity).padding(.vertical, 16)
@@ -117,8 +154,10 @@ private struct GuidanceCard: View {
 
 private struct CameraSurface: UIViewRepresentable {
     let engine: CaptureEngine
+    var onView: (ARSCNView) -> Void = { _ in }
     func makeUIView(context: Context) -> ARSCNView {
         let view = ARSCNView(frame: .zero)
+        onView(view)
         view.session = engine.session; engine.session.delegate = engine
         view.automaticallyUpdatesLighting = false
         view.backgroundColor = .systemGray6

@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "type": "debug.screenshot",
+  "kind": "request",
+  "id": "pc-8",
+  "sent_at": "2026-10-23T05:31:00.000Z",
+  "body": {
+    "max_width": 590,
+    "quality": 0.6
+  }
+}

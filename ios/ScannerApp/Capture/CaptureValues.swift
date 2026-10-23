@@ -166,6 +166,22 @@ struct GuidanceTracker: Sendable {
     static let showAfter = 0.6, clearAfter = 1.0
     static let darkLumens = 250.0, tooCloseM = 0.20, tooFarM = 0.50, fastMPerS = 0.35
 
+    /// Tunable from the web UI (`setConfig` guidance values, docs/PHONE-UI-AND-DEBUG.md); defaults are the constants above.
+    struct Config: Equatable, Sendable {
+        var darkLumens = GuidanceTracker.darkLumens, tooCloseM = GuidanceTracker.tooCloseM, tooFarM = GuidanceTracker.tooFarM
+        var fastMPerS = GuidanceTracker.fastMPerS, showAfterS = GuidanceTracker.showAfter, clearAfterS = GuidanceTracker.clearAfter
+
+        /// Known keys only, each clamped to a sane range; unknown keys and non-numbers are ignored.
+        mutating func apply(_ values: [String: Any]) {
+            func set(_ key: String, _ range: ClosedRange<Double>, _ target: inout Double) {
+                if let v = (values[key] as? NSNumber)?.doubleValue, v.isFinite { target = min(max(v, range.lowerBound), range.upperBound) }
+            }
+            set("darkLumens", 0...5000, &darkLumens); set("tooCloseM", 0.05...1, &tooCloseM); set("tooFarM", 0.1...3, &tooFarM)
+            set("fastMPerS", 0.05...5, &fastMPerS); set("showAfterS", 0...10, &showAfterS); set("clearAfterS", 0...10, &clearAfterS)
+        }
+    }
+    var config = Config()
+
     private(set) var shown: Tip?
     private var pending: (key: String?, since: Double)?
     private var last: (position: SIMD3<Float>, time: Double)?
@@ -175,7 +191,8 @@ struct GuidanceTracker: Sendable {
     /// The tip for this instant, before smoothing over time. Highest priority first.
     /// With auto light on, the torch answers darkness first; only a scene still dark at full torch asks for a lamp.
     static func condition(state: String, reason: String, light: Double?, depth: Double?, speed: Double, thermal: String,
-                          autoLight: Bool = false, torchAtMax: Bool = false) -> Tip? {
+                          autoLight: Bool = false, torchAtMax: Bool = false, config: Config = Config()) -> Tip? {
+        let fastMPerS = config.fastMPerS, darkLumens = config.darkLumens, tooCloseM = config.tooCloseM, tooFarM = config.tooFarM
         if state == "not_available" { return Tip(key: "tracking_lost", text: "Point the phone back at the part", level: .warn) }
         if reason == "relocalizing" { return Tip(key: "relocalizing", text: "Point back at where you started", level: .warn) }
         if reason == "excessive_motion" || speed > fastMPerS { return Tip(key: "too_fast", text: "Move slower", level: .warn) }
@@ -205,11 +222,11 @@ struct GuidanceTracker: Sendable {
         last = (input.position, input.time)
         let raw = Self.condition(state: input.trackingState, reason: input.trackingReason, light: light,
                                  depth: input.centerDepthM, speed: speed, thermal: input.thermal,
-                                 autoLight: input.autoLight, torchAtMax: input.torchAtMax)
+                                 autoLight: input.autoLight, torchAtMax: input.torchAtMax, config: config)
         if raw?.key == shown?.key { shown = raw; pending = nil; return shown }
         let since: Double
         if let p = pending, p.key == raw?.key { since = p.since } else { since = input.time; pending = (raw?.key, input.time) }
-        if input.time - since >= (raw == nil ? Self.clearAfter : Self.showAfter) { shown = raw; pending = nil }
+        if input.time - since >= (raw == nil ? config.clearAfterS : config.showAfterS) { shown = raw; pending = nil }
         return shown
     }
 }
@@ -229,6 +246,25 @@ struct TorchController: Sendable {
     static let lowLumens = 400.0, highLumens = 900.0, stepEvery = 0.5
     static let step: Float = 0.15, maxLevel: Float = 1.0
 
+    /// Tunable from the web UI (`setConfig` torch values); defaults are the constants above.
+    struct Config: Equatable, Sendable {
+        var lowLumens = TorchController.lowLumens, highLumens = TorchController.highLumens, periodS = TorchController.stepEvery
+        var step = TorchController.step, maxLevel = TorchController.maxLevel
+
+        mutating func apply(_ values: [String: Any]) {
+            func num(_ key: String) -> Double? {
+                guard let v = (values[key] as? NSNumber)?.doubleValue, v.isFinite else { return nil }
+                return v
+            }
+            if let v = num("lowLumens") { lowLumens = min(max(v, 0), 5000) }
+            if let v = num("highLumens") { highLumens = min(max(v, lowLumens + 1), 10000) }
+            if let v = num("periodS") { periodS = min(max(v, 0.1), 10) }
+            if let v = num("step") { step = Float(min(max(v, 0.01), 1)) }
+            if let v = num("maxLevel") { maxLevel = Float(min(max(v, 0.05), 1)) }
+        }
+    }
+    var config = Config()
+
     private(set) var level: Float = 0           // 0 is off
     private(set) var changed = false            // level changed in the last update: only then touch the hardware
     private(set) var forcedOff = false          // held off by heat or by auto light being off
@@ -236,7 +272,7 @@ struct TorchController: Sendable {
     private var lastTime: Double?
     private var lastStep = -Double.infinity
 
-    var atMax: Bool { level >= Self.maxLevel }
+    var atMax: Bool { level >= config.maxLevel }
 
     /// Returns whether the level changed.
     @discardableResult
@@ -252,10 +288,11 @@ struct TorchController: Sendable {
         forcedOff = !input.enabled || input.thermal == "serious" || input.thermal == "critical"
         if forcedOff {
             level = 0
-        } else if input.time - lastStep >= Self.stepEvery, input.trackingState != "not_available", let light {
+        } else if input.time - lastStep >= config.periodS, input.trackingState != "not_available", let light {
             lastStep = input.time
-            if light < Self.lowLumens { level = min(Self.maxLevel, level + Self.step) }
-            else if light > Self.highLumens { level = max(0, level - Self.step) }
+            if light < config.lowLumens { level = min(config.maxLevel, level + config.step) }
+            else if light > config.highLumens { level = max(0, level - config.step) }
+            level = min(level, config.maxLevel)
             if level < 0.01 { level = 0 }
         }
         changed = level != before

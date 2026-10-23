@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "type": "debug.action",
+  "kind": "request",
+  "id": "pc-11",
+  "sent_at": "2026-10-23T05:31:03.000Z",
+  "body": {
+    "name": "set_auto_light",
+    "args": {
+      "on": false
+    }
+  }
+}

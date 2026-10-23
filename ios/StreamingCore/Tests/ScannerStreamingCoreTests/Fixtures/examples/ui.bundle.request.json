@@ -1,0 +1,26 @@
+{
+  "v": 1,
+  "type": "ui.bundle",
+  "kind": "request",
+  "id": "pc-7",
+  "sent_at": "2026-10-23T05:30:00.000Z",
+  "body": {
+    "version": "2026.10.23-1",
+    "min_native": "0.3.0",
+    "entry": "index.html",
+    "files": [
+      {
+        "path": "index.html",
+        "bytes": 83,
+        "sha256": "a187563f3c9e873cfbab6551008ae09fddba61ee21f4daf8875217d56d637e73",
+        "content_b64": "PCFkb2N0eXBlIGh0bWw+PHRpdGxlPlNjYW5uZXI8L3RpdGxlPjxkaXYgaWQ9YXBwPjwvZGl2PjxzY3JpcHQgc3JjPWFwcC5qcz48L3NjcmlwdD4="
+      },
+      {
+        "path": "app.js",
+        "bytes": 26,
+        "sha256": "66f055507309c350c369d1ba8e5b52cbf3cbb86e4648dad24374e8124fd84a35",
+        "content_b64": "d2luZG93LnMzZCAmJiBzM2QucmVhZHkoKTs="
+      }
+    ]
+  }
+}

@@ -10,7 +10,7 @@ actor PhoneLink {
         var revision: UInt64 = 0
         var previewAllowed = false
     }
-    private let app = AppInfo(version: "0.2.0", build: "1", sourceRevision: "unknown")
+    private let app = AppInfo(version: AppVersion.native, build: "1", sourceRevision: "unknown")
     private let device: DeviceInfo
     private var paired: PairedPC?
     private var preview: StreamConnection?
@@ -40,22 +40,26 @@ actor PhoneLink {
     private let remoteStop: @Sendable (UUID, String) -> Void
     private let configurePreview: @Sendable (HelloResponse.PreviewProfile) -> Void
     private let guidance: @Sendable (GuidanceEvent) -> Void
+    private let bundle: @Sendable (UIBundleRequest) async -> JSONValue
+    private let debug: @Sendable (String, JSONValue) async -> DebugReply
+    private var logTask: Task<Void, Never>?
 
     init(device: DeviceInfo, state: @escaping @Sendable (State) -> Void,
          progress: @escaping @Sendable (UUID, UploadProgress, Bool) -> Void,
          remoteStop: @escaping @Sendable (UUID, String) -> Void,
          configurePreview: @escaping @Sendable (HelloResponse.PreviewProfile) -> Void,
-         guidance: @escaping @Sendable (GuidanceEvent) -> Void) {
+         guidance: @escaping @Sendable (GuidanceEvent) -> Void,
+         bundle: @escaping @Sendable (UIBundleRequest) async -> JSONValue,
+         debug: @escaping @Sendable (String, JSONValue) async -> DebugReply) {
         self.device = device; self.state = state; self.progress = progress; self.remoteStop = remoteStop
-        self.configurePreview = configurePreview; self.guidance = guidance
+        self.configurePreview = configurePreview; self.guidance = guidance; self.bundle = bundle; self.debug = debug
     }
 
     func connectConfirmed(_ payload: PairingPayload) async throws {
         guard payload.expires > Date() else { throw StreamError.invalid("PC code expired; open Connect phone again") }
-        let existing = try PairedPCStore.load()
-        let reuse = existing?.pcID == payload.pcID && existing?.fingerprint == payload.fingerprint
-        let auth: HelloAuth = reuse ? existing!.auth : .pairingToken(payload.token)
-        try await connect(addresses: payload.addresses, pin: payload.fingerprint, auth: auth,
+        // A freshly scanned code always pairs with its own one-time token. Reusing a stored credential for the same PC
+        // failed every re-pair once the PC had forgotten this phone (first real pairing, 2026-10-22).
+        try await connect(addresses: payload.addresses, pin: payload.fingerprint, auth: .pairingToken(payload.token),
                           expectedPC: payload.pcID, expectedName: payload.pcName)
     }
 
@@ -63,20 +67,28 @@ actor PhoneLink {
         if let preview, !(await preview.isClosed) { try await ensureUpload(); return }
         guard let saved = try PairedPCStore.load() else { return }
         let addresses = try saved.addresses.map { try PairingAddress.parse($0) }
-        try await connect(addresses: addresses, pin: saved.fingerprint, auth: saved.auth,
-                          expectedPC: saved.pcID, expectedName: saved.name)
+        do {
+            try await connect(addresses: addresses, pin: saved.fingerprint, auth: saved.auth,
+                              expectedPC: saved.pcID, expectedName: saved.name)
+        } catch StreamConnection.Failure.rejected(let code, _) where code == "not_paired" || code == "auth_failed" {
+            // The PC forgot this phone: drop the dead credential so the next scanned code pairs cleanly.
+            try? PairedPCStore.forget(); paired = nil
+            PhoneLog.shared.warn("the PC no longer knows this iPhone (\(code)); stored credential removed")
+            emit(State(connected: false, name: nil, message: "This PC no longer knows this iPhone. Tap Connect PC to pair again."))
+        }
     }
 
     func connectTyped(address: PairingAddress, fingerprint: String, token: String) async throws {
         let old = try PairedPCStore.load()
-        let auth: HelloAuth = old?.fingerprint == fingerprint ? old!.auth : .pairingToken(token)
-        try await connect(addresses: [address], pin: fingerprint, auth: auth,
+        // a typed code always pairs with its token (see connectConfirmed)
+        try await connect(addresses: [address], pin: fingerprint, auth: .pairingToken(token),
                           expectedPC: old?.fingerprint == fingerprint ? old?.pcID : nil, expectedName: address.displayHost)
     }
 
     private func connect(addresses: [PairingAddress], pin: String, auth: HelloAuth,
                          expectedPC: String?, expectedName: String) async throws {
         let epoch = UUID(); connectionEpoch = epoch
+        let storedBefore = (try? PairedPCStore.load())?.deviceID
         await closeConnections()
         guard connectionEpoch == epoch, !Task.isCancelled else { throw CancellationError() }
         emit(State(connected: false, name: expectedName, message: "Connecting…"))
@@ -109,6 +121,8 @@ actor PhoneLink {
                 inflightMax = hello.limits.previewInflightMax
                 try await freshPreviewWindow(connection)
                 emit(State(connected: true, name: saved.name, message: "Connected"))
+                PhoneLog.shared.info("connected to \(saved.name) at \(address.displayHost)")
+                startLogPump(connection, epoch: epoch)
                 if let recording { try await announce(recording, resumed: true) }
                 try await ensureUpload()
                 return
@@ -117,12 +131,40 @@ actor PhoneLink {
                 guard connectionEpoch == epoch, !Task.isCancelled else { throw CancellationError() }
                 // A consumed pairing token must never be replayed on another address after receiving a
                 // credential. The Keychain now carries that successful pairing for the next reconnect.
-                if case .pairingToken = auth, let saved = try PairedPCStore.load(), saved.fingerprint == pin { break }
+                if case .pairingToken = auth, let saved = try PairedPCStore.load(), saved.fingerprint == pin,
+                   saved.deviceID != storedBefore { break }
             }
         }
         emit(State(connected: false, name: expectedName, message: "PC unavailable; recording stays on iPhone"))
         throw failure
     }
+
+    /// "Forget this PC": deletes this phone's stored credential and disconnects. Scans stay on the phone.
+    func forgetPC() async throws {
+        connectionEpoch = UUID()
+        await closeConnections()
+        try PairedPCStore.forget(); paired = nil
+        PhoneLog.shared.info("PC forgotten on the phone")
+        emit(State(connected: false, name: nil, message: "Not connected to a PC. Tap Connect PC to pair."))
+    }
+
+    /// Phone log lines go to the PC as `log` events, at most one per second, while this preview socket is open.
+    private func startLogPump(_ connection: StreamConnection, epoch: UUID) {
+        logTask?.cancel()
+        logTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do { try await Task.sleep(nanoseconds: 1_000_000_000) } catch { return }
+                guard let self, await self.isCurrent(epoch), !(await connection.isClosed) else { return }
+                guard let batch = PhoneLog.shared.drain() else { continue }
+                let lines: [JSONValue] = batch.lines.map {
+                    .object(["t_device_s": .num($0.time), "level": .string($0.level), "text": .string($0.text)])
+                }
+                try? await connection.event("log", .object(["lines": .array(lines), "dropped": .int(batch.dropped)]))
+            }
+        }
+    }
+
+    private func isCurrent(_ epoch: UUID) -> Bool { connectionEpoch == epoch }
 
     func disconnect() async {
         connectionEpoch = UUID()
@@ -310,6 +352,11 @@ actor PhoneLink {
             if case .showConfirmation(let request) = effect {
                 remoteStop(request.sessionID, request.detail ?? "The PC asked to stop this scan.")
             }
+        case .uiBundle(let id, let request):
+            // answered off the read loop: installing writes files
+            Task { [weak self] in await self?.answerBundle(id: id, request: request, epoch: epoch) }
+        case .debugRequest(let type, let id, let body):
+            Task { [weak self] in await self?.answerDebug(type: type, id: id, body: body, epoch: epoch) }
         case .guidance(let event):
             // the PC's live-coverage tip for the scan this socket streams; the model ranks it below ARKit's own tips
             guard event.sessionID == recording?.sessionID else { return }
@@ -317,6 +364,28 @@ actor PhoneLink {
         case .errorEvent(let error):
             if error.fatal { throw StreamConnection.Failure.remote(error.error.message) }
         default: break
+        }
+    }
+
+    private func answerBundle(id: String, request: UIBundleRequest, epoch: UUID) async {
+        let body = await bundle(request)
+        guard connectionEpoch == epoch, let preview else { return }
+        do { try await preview.respond("ui.bundle", replyTo: id, body: body) }
+        catch { PhoneLog.shared.warn("ui.bundle reply failed: \(error.localizedDescription)") }
+    }
+
+    private func answerDebug(type: String, id: String, body: JSONValue, epoch: UUID) async {
+        let reply = await debug(type, body)
+        guard connectionEpoch == epoch, let preview else { return }
+        switch reply {
+        case .ok(let content):
+            do { try await preview.respond(type, replyTo: id, body: content) }
+            catch {
+                try? await preview.respondError(type, replyTo: id, code: "internal",
+                                                message: "Reply not sent: \(error.localizedDescription)")
+            }
+        case .error(let code, let message):
+            try? await preview.respondError(type, replyTo: id, code: code, message: String(message.prefix(300)))
         }
     }
 

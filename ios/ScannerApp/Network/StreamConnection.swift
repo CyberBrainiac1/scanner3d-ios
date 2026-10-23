@@ -6,12 +6,15 @@ import ScannerStreamingCore
 actor StreamConnection {
     enum Failure: Error, LocalizedError {
         case disconnected, timeout, wrongReply, remote(String)
+        /// The PC answered a request with an error response (code from contracts error_code, e.g. not_paired).
+        case rejected(code: String, message: String)
         var errorDescription: String? {
             switch self {
             case .disconnected: return "The PC connection closed. Original scan files remain on iPhone."
             case .timeout: return "The PC did not reply in time. Reconnect to continue sending."
             case .wrongReply: return "The PC sent an unexpected reply."
             case .remote(let text): return text
+            case .rejected(_, let text): return text
             }
         }
     }
@@ -170,7 +173,9 @@ actor StreamConnection {
 
     private func resolve(_ continuation: CheckedContinuation<IncomingMessage, Error>, expected: String,
                          actual: String, value: IncomingMessage) {
-        if case .errorResponse(_, _, let error) = value { continuation.resume(throwing: Failure.remote(error.message)) }
+        if case .errorResponse(_, _, let error) = value {
+            continuation.resume(throwing: Failure.rejected(code: error.code, message: error.message))
+        }
         else if expected != actual { continuation.resume(throwing: Failure.wrongReply) }
         else { continuation.resume(returning: value) }
     }

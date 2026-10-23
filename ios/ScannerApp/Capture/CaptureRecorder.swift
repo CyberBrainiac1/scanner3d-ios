@@ -54,7 +54,7 @@ final class CaptureRecorder {
             "format": "s3d-session", "format_version": "1.0", "session_id": store.sessionID.uuidString.lowercased(),
             "profile": "tabletop", "started_at": CaptureValues.utc(), "t_device_start_s": time,
             "device": ["model_identifier": model, "os_version": os, "display_name": "Scan iPhone"],
-            "app": ["name": "scanner3d-ios", "version": "0.2.0", "build": "1", "source_revision": sourceRevision],
+            "app": ["name": "scanner3d-ios", "version": AppVersion.native, "build": "1", "source_revision": sourceRevision],
             "capture": configuration, "conventions": CaptureValues.conventions
         ]
         try store.commit(CaptureValues.json(metadata), path: "session.json", kind: "session_meta")

@@ -23,6 +23,24 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
         let recording: Bool
         let message: String?
         let guidance: GuidanceTracker.Tip?
+        let sensors: Sensors?
+        let torch: TorchState
+    }
+    /// Raw readings behind the guidance, for the web UI (docs/PHONE-UI-AND-DEBUG.md `state.sensors`).
+    struct Sensors: Sendable {
+        let trackingState: String
+        let trackingReason: String
+        let ambientLumens: Double?
+        let centerDepthM: Double?
+        let speedMps: Double
+        let thermal: String
+    }
+    struct TorchState: Sendable {
+        let autoLight: Bool
+        let level: Float
+        let atMax: Bool
+        let failed: Bool
+        let manual: Bool
     }
     static let previewFailureLimit = 50
     let session = ARSession()
@@ -59,6 +77,12 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
     private var autoLight = true                // user setting; capture queue only
     private var torch = TorchController()
     private var torchFailed = false             // auto light is off for the rest of this session after a torch error
+    private var manualTorch: Float?             // set from the web UI / PC: a fixed level instead of auto light
+    private var appliedTorch: Float = 0         // what the hardware was last set to
+    private var guidanceConfig = GuidanceTracker.Config()
+    private var torchConfig = TorchController.Config()
+    private var sensors: Sensors?
+    private var lastTorchSync: Double = -1
     private var centerDepth: Double?
     private var lastDepthProbe: Double = -1
     private var lastStatus: Double = -1
@@ -87,6 +111,17 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
     func allowPreview(_ enabled: Bool) { capture.async { [self] in previewAllowed = enabled } }
     /// Auto light drives the torch in dark scenes during a recording; off turns the torch off on the next frame.
     func setAutoLight(_ enabled: Bool) { capture.async { [self] in autoLight = enabled } }
+    /// A fixed torch level 0...1 (0 = off), or nil to return to auto light. Applied on the next frame while recording.
+    func setManualTorch(_ level: Float?) { capture.async { [self] in manualTorch = level.map { min(max($0, 0), 1) } } }
+    /// Tuning from the web UI (`setConfig`): known keys only, clamped; kept across scans.
+    func applyConfig(guidance values: [String: Any]?, torch torchValues: [String: Any]?) {
+        capture.async { [self] in
+            if let values { guidanceConfig.apply(values); guidance.config = guidanceConfig }
+            if let torchValues { torchConfig.apply(torchValues); torch.config = torchConfig }
+        }
+    }
+    private func freshGuidance() -> GuidanceTracker { var g = GuidanceTracker(); g.config = guidanceConfig; return g }
+    private func freshTorch() -> TorchController { var c = TorchController(); c.config = torchConfig; return c }
 
     func currentStore() async -> OriginalStore? {
         await withCheckedContinuation { continuation in capture.async { [self] in continuation.resume(returning: recorder?.store) } }
@@ -123,8 +158,8 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
                         model: Self.modelIdentifier(), os: os,
                         sourceRevision: Bundle.main.object(forInfoDictionaryKey: "ScannerSourceRevision") as? String ?? "unknown", time: now)
                     lastPreview = -1; lastStill = -1; lastStatus = -1; previewSequence = 0; stillInFlight = false; previewEncodingEnabled = true
-                    previewFailures = 0; guidance = GuidanceTracker(); centerDepth = nil; lastDepthProbe = -1
-                    torch = TorchController(); torchFailed = false
+                    previewFailures = 0; guidance = freshGuidance(); centerDepth = nil; lastDepthProbe = -1
+                    torch = freshTorch(); torchFailed = false; appliedTorch = 0; sensors = nil
                     gate.lock(); dropped = 0; generation = id; running = true; gate.unlock()
                     session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
                     startMotion()
@@ -141,8 +176,8 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             capture.async { [self] in
                 // Recording ends here on every path (user, storage, heat, error): the torch goes off first.
-                if torch.level > 0 { setTorch(0, time: ProcessInfo.processInfo.systemUptime, recorder: self.recorder) }
-                torch = TorchController()
+                if appliedTorch > 0 { setTorch(0, time: ProcessInfo.processInfo.systemUptime, recorder: self.recorder) }
+                torch = freshTorch()
                 guard let recorder else { continuation.resume(); return }
                 do {
                     let now = ProcessInfo.processInfo.systemUptime
@@ -288,14 +323,22 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
         let t = frame.camera.transform.columns.3
         let thermal = Self.thermal()
         let ambient = frame.lightEstimate.map { Double($0.ambientIntensity) }
-        if torch.update(TorchController.Input(time: time, ambientIntensity: ambient, thermal: thermal,
-                                              trackingState: tracking.state, enabled: autoLight && !torchFailed)) {
+        if let manual = manualTorch {
+            // a fixed level from the web UI / PC; heat still turns it off
+            let target: Float = thermal == "serious" || thermal == "critical" ? 0 : manual
+            if target != appliedTorch, time - lastTorchSync >= 0.2 { lastTorchSync = time; setTorch(target, time: time, recorder: recorder) }
+        } else if torch.update(TorchController.Input(time: time, ambientIntensity: ambient, thermal: thermal,
+                                                     trackingState: tracking.state, enabled: autoLight && !torchFailed))
+                    || torch.level != appliedTorch && !torchFailed && time - lastTorchSync >= 1 {
+            lastTorchSync = time
             setTorch(torch.level, time: time, recorder: recorder)
         }
         let before = guidance.shown
         let tip = guidance.update(GuidanceTracker.Input(time: time, trackingState: tracking.state, trackingReason: tracking.reason,
             ambientIntensity: ambient, centerDepthM: centerDepth, position: SIMD3(t.x, t.y, t.z), thermal: thermal,
-            autoLight: autoLight && !torchFailed && !torch.forcedOff, torchAtMax: torch.atMax))
+            autoLight: autoLight && manualTorch == nil && !torchFailed && !torch.forcedOff, torchAtMax: torch.atMax))
+        sensors = Sensors(trackingState: tracking.state, trackingReason: tracking.reason, ambientLumens: guidance.light,
+                          centerDepthM: centerDepth, speedMps: guidance.speed, thermal: thermal)
         if tip != before { publish(recorder, time: time, message: nil) }
     }
 
@@ -319,6 +362,7 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
             } else {
                 device.torchMode = .off
             }
+            appliedTorch = level
             try? recorder?.event("torch", detail: String(format: "%.2f", level), time: time)
         } catch {
             if !torchFailed { try? recorder?.event("torch_error", detail: error.localizedDescription, time: time) }
@@ -381,7 +425,9 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
         onStatus?(Snapshot(sessionID: recorder.store.sessionID, segment: recorder.segment, elapsed: max(0, time - recorder.started),
             frames: recorder.savedFrames, depthFrames: recorder.depthFrames, stills: recorder.stillCount,
             freeBytes: freeBytes(), droppedFrames: droppedCount(), recording: isRunning, message: message,
-            guidance: guidance.shown))
+            guidance: guidance.shown, sensors: sensors,
+            torch: TorchState(autoLight: autoLight, level: appliedTorch, atMax: manualTorch.map { $0 >= 1 } ?? torch.atMax,
+                              failed: torchFailed, manual: manualTorch != nil)))
     }
 
     private func freeBytes() -> UInt64 {

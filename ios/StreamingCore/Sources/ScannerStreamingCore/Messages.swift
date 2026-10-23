@@ -271,6 +271,10 @@ public enum IncomingMessage: Sendable, Equatable {
     case sessionStartResponse(replyTo: String, SessionStartResponse)
     case sessionStopResponse(replyTo: String, SessionStopResponse)
     case captureStop(id: String, CaptureStopRequestBody)
+    /// `ui.bundle` request: the hot-updatable phone UI (UIBundle.swift).
+    case uiBundle(id: String, UIBundleRequest)
+    /// `debug.screenshot` / `debug.state` / `debug.eval` / `debug.action` requests; the body is checked by the app.
+    case debugRequest(type: String, id: String, body: JSONValue)
     case resumeResponse(replyTo: String, ResumePage)
     case manifestResponse(replyTo: String, ManifestResponse)
     case offerResponse(replyTo: String, OfferResponse)
@@ -323,6 +327,10 @@ public enum IncomingMessage: Sendable, Equatable {
                 return .ping(id: head.id, try body(PingBody.self).ticks)
             case CaptureStopFlow.messageType:
                 return .captureStop(id: head.id, try body(CaptureStopRequestBody.self))
+            case "ui.bundle":
+                return .uiBundle(id: head.id, try body(UIBundleRequest.self))
+            case "debug.screenshot", "debug.state", "debug.eval", "debug.action":
+                return .debugRequest(type: head.type, id: head.id, body: try body(JSONValue.self))
             default: return .unknownRequest(type: head.type, id: head.id)
             }
         default:
