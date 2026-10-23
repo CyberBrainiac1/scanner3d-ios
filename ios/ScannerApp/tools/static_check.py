@@ -17,6 +17,7 @@ ALLOWED_IMPORTS = {
     "SwiftUI", "UIKit", "ARKit", "AVFoundation", "CoreMotion", "CoreImage", "CoreVideo", "Accelerate",
     "Security", "Combine", "os", "Darwin", "ImageIO", "UniformTypeIdentifiers", "SceneKit", "simd",
     "ScannerApp", "Observation", "VisionKit",
+    "WebKit",  # hot-updatable UI bundle in a WKWebView (docs/PHONE-UI-AND-DEBUG.md)
 }
 PAIRS = {")": "(", "]": "[", "}": "{"}
 
