@@ -22,7 +22,9 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
         let droppedFrames: UInt64
         let recording: Bool
         let message: String?
+        let guidance: GuidanceTracker.Tip?
     }
+    static let previewFailureLimit = 50
     let session = ARSession()
     var onStatus: (@Sendable (Snapshot) -> Void)?
     var onPreview: (@Sendable (UUID, UInt32, UInt64, Data) -> Void)?
@@ -51,7 +53,14 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
     private var previewQuality = 0.75, depthScale = 0.001
     private var previewFloatDepth = false, previewConfidence = true
     private var previewEncodingEnabled = true
+    private var previewFailures = 0
     private var previewAllowed = false
+    private var guidance = GuidanceTracker()
+    private var autoLight = true                // user setting; capture queue only
+    private var torch = TorchController()
+    private var torchFailed = false             // auto light is off for the rest of this session after a torch error
+    private var centerDepth: Double?
+    private var lastDepthProbe: Double = -1
     private var lastStatus: Double = -1
     private let imageContext = CIContext(options: [.cacheIntermediates: false])
 
@@ -76,6 +85,8 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
         }
     }
     func allowPreview(_ enabled: Bool) { capture.async { [self] in previewAllowed = enabled } }
+    /// Auto light drives the torch in dark scenes during a recording; off turns the torch off on the next frame.
+    func setAutoLight(_ enabled: Bool) { capture.async { [self] in autoLight = enabled } }
 
     func currentStore() async -> OriginalStore? {
         await withCheckedContinuation { continuation in capture.async { [self] in continuation.resume(returning: recorder?.store) } }
@@ -112,6 +123,8 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
                         model: Self.modelIdentifier(), os: os,
                         sourceRevision: Bundle.main.object(forInfoDictionaryKey: "ScannerSourceRevision") as? String ?? "unknown", time: now)
                     lastPreview = -1; lastStill = -1; lastStatus = -1; previewSequence = 0; stillInFlight = false; previewEncodingEnabled = true
+                    previewFailures = 0; guidance = GuidanceTracker(); centerDepth = nil; lastDepthProbe = -1
+                    torch = TorchController(); torchFailed = false
                     gate.lock(); dropped = 0; generation = id; running = true; gate.unlock()
                     session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
                     startMotion()
@@ -127,6 +140,9 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
         session.pause(); motion.stopAccelerometerUpdates(); motion.stopGyroUpdates()
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             capture.async { [self] in
+                // Recording ends here on every path (user, storage, heat, error): the torch goes off first.
+                if torch.level > 0 { setTorch(0, time: ProcessInfo.processInfo.systemUptime, recorder: self.recorder) }
+                torch = TorchController()
                 guard let recorder else { continuation.resume(); return }
                 do {
                     let now = ProcessInfo.processInfo.systemUptime
@@ -164,13 +180,22 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
                             if let bytes = try preview(frame, recorder: recorder, frameID: fid) {
                                 onPreview?(recorder.store.sessionID, recorder.segment, previewSequence, bytes); previewSequence += 1
                             }
+                            previewFailures = 0
                         } catch {
-                            // A droppable PC preview failure must never stop local original recording.
-                            previewEncodingEnabled = false
-                            try recorder.event("preview_encode_error", detail: error.localizedDescription, time: frame.timestamp)
-                            onPreviewFailure?(error.localizedDescription)
+                            // A droppable PC preview failure must never stop local original recording. One bad frame
+                            // must not end the preview either (the first real-phone scan lost it on frame 0): retry on
+                            // later frames and give up only after a long unbroken run of failures.
+                            previewFailures += 1
+                            if previewFailures == 1 || previewFailures % 10 == 0 {
+                                try recorder.event("preview_encode_error", detail: "\(error.localizedDescription) (\(previewFailures) in a row)", time: frame.timestamp)
+                            }
+                            if previewFailures >= Self.previewFailureLimit {
+                                previewEncodingEnabled = false
+                                onPreviewFailure?(error.localizedDescription)
+                            }
                         }
                     }
+                    updateGuidance(frame, time: frame.timestamp, recorder: recorder)
                     if stillsEnabled, !stillInFlight, frame.timestamp - lastStill >= 2,
                        CaptureValues.tracking(frame.camera).state == "normal" {
                         requestStill(recorder: recorder, at: frame.timestamp)
@@ -254,16 +279,63 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
         }
     }
 
+    private func updateGuidance(_ frame: ARFrame, time: Double, recorder: CaptureRecorder) {
+        if time - lastDepthProbe >= 0.2, let depth = frame.sceneDepth {
+            lastDepthProbe = time
+            centerDepth = CaptureValues.centerDepth(depth.depthMap, confidence: depth.confidenceMap)
+        }
+        let tracking = CaptureValues.tracking(frame.camera)
+        let t = frame.camera.transform.columns.3
+        let thermal = Self.thermal()
+        let ambient = frame.lightEstimate.map { Double($0.ambientIntensity) }
+        if torch.update(TorchController.Input(time: time, ambientIntensity: ambient, thermal: thermal,
+                                              trackingState: tracking.state, enabled: autoLight && !torchFailed)) {
+            setTorch(torch.level, time: time, recorder: recorder)
+        }
+        let before = guidance.shown
+        let tip = guidance.update(GuidanceTracker.Input(time: time, trackingState: tracking.state, trackingReason: tracking.reason,
+            ambientIntensity: ambient, centerDepthM: centerDepth, position: SIMD3(t.x, t.y, t.z), thermal: thermal,
+            autoLight: autoLight && !torchFailed && !torch.forcedOff, torchAtMax: torch.atMax))
+        if tip != before { publish(recorder, time: time, message: nil) }
+    }
+
+    /// Applies a torch level through ARKit's own camera device and records it so reconstruction knows the lighting
+    /// changed. A torch failure never reaches recording or the preview: the first one is logged and auto light stays
+    /// off for the rest of the session (turning the torch off is still attempted).
+    private func setTorch(_ level: Float, time: Double, recorder: CaptureRecorder?) {
+        guard !torchFailed || level == 0 else { return }
+        do {
+            guard let device = ARWorldTrackingConfiguration.configurableCaptureDeviceForPrimaryCamera,
+                  device.hasTorch, device.isTorchModeSupported(.on), device.isTorchModeSupported(.off) else {
+                throw OriginalStore.Failure.io("No controllable torch on the ARKit camera")
+            }
+            if level > 0, !device.isTorchAvailable { return }   // briefly unavailable (e.g. heat); retried on the next change
+            try device.lockForConfiguration()
+            defer { device.unlockForConfiguration() }
+            if level > 0 {
+                // Full level asks for whatever the device allows right now (heat may lower it); partial levels are (0, 1).
+                let maxLevel = AVCaptureDevice.maxAvailableTorchLevel
+                try device.setTorchModeOn(level: level >= 1 ? maxLevel : min(level, maxLevel))
+            } else {
+                device.torchMode = .off
+            }
+            try? recorder?.event("torch", detail: String(format: "%.2f", level), time: time)
+        } catch {
+            if !torchFailed { try? recorder?.event("torch_error", detail: error.localizedDescription, time: time) }
+            torchFailed = true
+        }
+    }
+
     private func preview(_ frame: ARFrame, recorder: CaptureRecorder, frameID: UInt64) throws -> Data? {
         guard onPreview != nil else { return nil }
         let source = frame.capturedImage
         let w = CVPixelBufferGetWidth(source), h = CVPixelBufferGetHeight(source)
         let sx = Double(previewWidth) / Double(w), sy = Double(previewHeight) / Double(h)
+        // Crop to whole pixels: a scaled extent such as 479.99997 rows makes the JPEG writers return nil.
         let image = CIImage(cvPixelBuffer: source).transformed(by: CGAffineTransform(scaleX: sx, y: sy))
-        guard let space = CGColorSpace(name: CGColorSpace.sRGB),
-              let jpeg = imageContext.jpegRepresentation(of: image, colorSpace: space,
-                options: [CIImageRepresentationOption(rawValue: kCGImageDestinationLossyCompressionQuality as String): previewQuality]) else {
-            throw OriginalStore.Failure.io("Preview JPEG")
+            .cropped(to: CGRect(x: 0, y: 0, width: previewWidth, height: previewHeight))
+        guard let jpeg = encodeJPEG(image) else {
+            throw OriginalStore.Failure.io("Preview JPEG (\(w)x\(h) \(CaptureValues.fourCC(CVPixelBufferGetPixelFormatType(source))) -> \(previewWidth)x\(previewHeight))")
         }
         var depthSection: DepthSection?, confidenceBytes: Data?
         if let depth = frame.sceneDepth, let confidence = depth.confidenceMap {
@@ -291,10 +363,25 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
             depth: depthSection, confidence: confidenceBytes))
     }
 
+    /// Core Image's JPEG writer first; if it returns nil, render to a CGImage and write it with ImageIO.
+    private func encodeJPEG(_ image: CIImage) -> Data? {
+        guard let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
+        if let jpeg = imageContext.jpegRepresentation(of: image, colorSpace: space,
+            options: [CIImageRepresentationOption(rawValue: kCGImageDestinationLossyCompressionQuality as String): previewQuality]) {
+            return jpeg
+        }
+        guard let cg = imageContext.createCGImage(image, from: image.extent, format: .RGBA8, colorSpace: space) else { return nil }
+        let out = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(out, "public.jpeg" as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImage(destination, cg, [kCGImageDestinationLossyCompressionQuality: previewQuality] as CFDictionary)
+        return CGImageDestinationFinalize(destination) ? out as Data : nil
+    }
+
     private func publish(_ recorder: CaptureRecorder, time: Double, message: String?) {
         onStatus?(Snapshot(sessionID: recorder.store.sessionID, segment: recorder.segment, elapsed: max(0, time - recorder.started),
             frames: recorder.savedFrames, depthFrames: recorder.depthFrames, stills: recorder.stillCount,
-            freeBytes: freeBytes(), droppedFrames: droppedCount(), recording: isRunning, message: message))
+            freeBytes: freeBytes(), droppedFrames: droppedCount(), recording: isRunning, message: message,
+            guidance: guidance.shown))
     }
 
     private func freeBytes() -> UInt64 {

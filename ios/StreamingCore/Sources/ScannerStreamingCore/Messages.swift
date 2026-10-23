@@ -172,6 +172,29 @@ public struct FlowEvent: Decodable, Sendable, Equatable {
     }
 }
 
+/// `guidance` event (PC -> phone, preview socket): the PC's current live-coverage tip for the guidance card.
+public struct GuidanceEvent: Decodable, Sendable, Equatable {
+    public struct Tip: Decodable, Sendable, Equatable {
+        public let id: String, severity: String, text: String, conditionKey: String
+        enum CodingKeys: String, CodingKey { case id, severity, text, conditionKey = "condition_key" }
+    }
+    public let sessionID: UUID, coverageScore: Double?, tip: Tip?
+    enum CodingKeys: String, CodingKey { case sessionID = "session_id", coverageScore = "coverage_score", tip }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        sessionID = try c.decode(UUID.self, forKey: .sessionID)
+        coverageScore = try c.decodeIfPresent(Double.self, forKey: .coverageScore)
+        tip = try c.decodeIfPresent(Tip.self, forKey: .tip)
+    }
+    public func validate() throws {
+        guard coverageScore.map({ $0.isFinite && (0...1).contains($0) }) ?? true else { throw StreamError.invalid("coverage score") }
+        if let tip {
+            guard ["warning", "adjust", "next"].contains(tip.severity), (1...200).contains(tip.text.count),
+                  (1...128).contains(tip.conditionKey.count), (1...64).contains(tip.id.count) else { throw StreamError.invalid("guidance tip") }
+        }
+    }
+}
+
 public struct PreviewAck: Decodable, Sendable, Equatable {
     public let sessionID: UUID, frameID: UInt64, previewSeq: UInt64, receivedQpcTicks: QPCTicks, result: String
     enum CodingKeys: String, CodingKey {
@@ -243,6 +266,7 @@ public enum IncomingMessage: Sendable, Equatable {
     case errorResponse(type: String, replyTo: String, WireError)
     case ping(id: String, QPCTicks)
     case flow(FlowEvent)
+    case guidance(GuidanceEvent)
     case previewAck(PreviewAck)
     case sessionStartResponse(replyTo: String, SessionStartResponse)
     case sessionStopResponse(replyTo: String, SessionStopResponse)
@@ -305,6 +329,8 @@ public enum IncomingMessage: Sendable, Equatable {
             switch head.type {
             case "flow":
                 let flow = try body(FlowEvent.self); try flow.validate(); return .flow(flow)
+            case "guidance":
+                let guidance = try body(GuidanceEvent.self); try guidance.validate(); return .guidance(guidance)
             case "preview.ack": return .previewAck(try body(PreviewAck.self))
             case "originals.ack": return .originalsAck(try body(OriginalsAck.self))
             case "originals.nack": return .originalsNack(try body(OriginalsNack.self))

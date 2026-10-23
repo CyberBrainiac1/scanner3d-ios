@@ -39,13 +39,15 @@ actor PhoneLink {
     private let progress: @Sendable (UUID, UploadProgress, Bool) -> Void
     private let remoteStop: @Sendable (UUID, String) -> Void
     private let configurePreview: @Sendable (HelloResponse.PreviewProfile) -> Void
+    private let guidance: @Sendable (GuidanceEvent) -> Void
 
     init(device: DeviceInfo, state: @escaping @Sendable (State) -> Void,
          progress: @escaping @Sendable (UUID, UploadProgress, Bool) -> Void,
          remoteStop: @escaping @Sendable (UUID, String) -> Void,
-         configurePreview: @escaping @Sendable (HelloResponse.PreviewProfile) -> Void) {
+         configurePreview: @escaping @Sendable (HelloResponse.PreviewProfile) -> Void,
+         guidance: @escaping @Sendable (GuidanceEvent) -> Void) {
         self.device = device; self.state = state; self.progress = progress; self.remoteStop = remoteStop
-        self.configurePreview = configurePreview
+        self.configurePreview = configurePreview; self.guidance = guidance
     }
 
     func connectConfirmed(_ payload: PairingPayload) async throws {
@@ -308,6 +310,10 @@ actor PhoneLink {
             if case .showConfirmation(let request) = effect {
                 remoteStop(request.sessionID, request.detail ?? "The PC asked to stop this scan.")
             }
+        case .guidance(let event):
+            // the PC's live-coverage tip for the scan this socket streams; the model ranks it below ARKit's own tips
+            guard event.sessionID == recording?.sessionID else { return }
+            guidance(event)
         case .errorEvent(let error):
             if error.fatal { throw StreamConnection.Failure.remote(error.error.message) }
         default: break

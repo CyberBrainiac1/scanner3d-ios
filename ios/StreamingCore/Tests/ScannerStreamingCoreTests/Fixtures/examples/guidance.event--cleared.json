@@ -1,0 +1,12 @@
+{
+  "v": 1,
+  "type": "guidance",
+  "kind": "event",
+  "id": "pc-57",
+  "sent_at": "2026-10-23T04:41:07.512Z",
+  "body": {
+    "session_id": "b12f7232-8921-4e79-87a1-95a4557b28e6",
+    "coverage_score": 0.91,
+    "tip": null
+  }
+}

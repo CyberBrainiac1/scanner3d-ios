@@ -124,4 +124,120 @@ final class CaptureTests: XCTestCase {
         XCTAssertTrue(PinnedSocket.matchesHost("[fc00::1]", address: address))
         XCTAssertFalse(PinnedSocket.matchesHost("fc00::2", address: address))
     }
+
+    /// Feeds constant light at 10 Hz for `seconds`; returns every level seen.
+    @discardableResult
+    private func feed(_ torch: inout TorchController, lumens: Double, from start: Double, seconds: Double,
+                      thermal: String = "nominal", enabled: Bool = true) -> [Float] {
+        var levels: [Float] = []
+        for i in 0..<Int(seconds * 10) {
+            torch.update(TorchController.Input(time: start + Double(i) / 10, ambientIntensity: lumens, thermal: thermal,
+                                               trackingState: "normal", enabled: enabled))
+            levels.append(torch.level)
+        }
+        return levels
+    }
+
+    func testTorchStepsUpInTheDarkOncePerHalfSecondUpToMax() {
+        var torch = TorchController()
+        let first = torch.update(TorchController.Input(time: 0, ambientIntensity: 50, thermal: "nominal", trackingState: "normal"))
+        XCTAssertTrue(first)
+        XCTAssertEqual(torch.level, 0.15, accuracy: 1e-5)
+        let early = torch.update(TorchController.Input(time: 0.2, ambientIntensity: 50, thermal: "nominal", trackingState: "normal"))
+        XCTAssertFalse(early)
+        XCTAssertFalse(torch.changed)
+        XCTAssertEqual(torch.level, 0.15, accuracy: 1e-5)
+        let second = torch.update(TorchController.Input(time: 0.5, ambientIntensity: 50, thermal: "nominal", trackingState: "normal"))
+        XCTAssertTrue(second)
+        XCTAssertEqual(torch.level, 0.30, accuracy: 1e-5)
+        XCTAssertFalse(torch.atMax)
+        feed(&torch, lumens: 50, from: 0.6, seconds: 5)
+        XCTAssertEqual(torch.level, 1)
+        XCTAssertTrue(torch.atMax)
+    }
+
+    func testTorchHoldsInTheBand() {
+        var torch = TorchController()
+        feed(&torch, lumens: 600, from: 0, seconds: 5)
+        XCTAssertEqual(torch.level, 0)
+        feed(&torch, lumens: 50, from: 5, seconds: 1)
+        feed(&torch, lumens: 600, from: 6, seconds: 5)
+        let settled = torch.level
+        XCTAssertGreaterThan(settled, 0)
+        XCTAssertLessThan(settled, 1)
+        let levels = feed(&torch, lumens: 600, from: 11, seconds: 10)
+        XCTAssertTrue(levels.allSatisfy { $0 == settled })
+        XCTAssertFalse(torch.changed)
+    }
+
+    func testTorchStepsDownWhenBrightAndTurnsOff() {
+        var torch = TorchController()
+        feed(&torch, lumens: 50, from: 0, seconds: 5)
+        XCTAssertTrue(torch.atMax)
+        let levels = feed(&torch, lumens: 3000, from: 5, seconds: 10)
+        XCTAssertEqual(levels.last, 0)
+        for (a, b) in zip(levels, levels.dropFirst()) {
+            XCTAssertLessThanOrEqual(b, a)
+            XCTAssertLessThanOrEqual(a - b, TorchController.step + 1e-5)
+        }
+    }
+
+    func testTorchTurnsOffWhenHotOrDisabled() {
+        for thermal in ["serious", "critical"] {
+            var torch = TorchController()
+            feed(&torch, lumens: 50, from: 0, seconds: 5)
+            XCTAssertTrue(torch.atMax)
+            let changed = torch.update(TorchController.Input(time: 5, ambientIntensity: 50, thermal: thermal, trackingState: "normal"))
+            XCTAssertTrue(changed)
+            XCTAssertEqual(torch.level, 0)
+            XCTAssertTrue(torch.forcedOff)
+            let hot = feed(&torch, lumens: 50, from: 5.1, seconds: 3, thermal: thermal)
+            XCTAssertTrue(hot.allSatisfy { $0 == 0 })
+        }
+        var torch = TorchController()
+        feed(&torch, lumens: 50, from: 0, seconds: 2)
+        XCTAssertGreaterThan(torch.level, 0)
+        let disabled = feed(&torch, lumens: 50, from: 2, seconds: 3, enabled: false)
+        XCTAssertTrue(disabled.allSatisfy { $0 == 0 })
+        feed(&torch, lumens: 50, from: 5, seconds: 1, thermal: "fair")
+        XCTAssertGreaterThan(torch.level, 0)
+    }
+
+    func testTorchLevelStaysWithinZeroAndOne() {
+        var torch = TorchController()
+        for i in 0..<2000 {
+            let lumens: Double = (i / 37) % 2 == 0 ? 5 : 5000
+            torch.update(TorchController.Input(time: Double(i) / 30, ambientIntensity: lumens, thermal: "nominal", trackingState: "normal"))
+            XCTAssertGreaterThanOrEqual(torch.level, 0)
+            XCTAssertLessThanOrEqual(torch.level, TorchController.maxLevel)
+        }
+        feed(&torch, lumens: 1, from: 100, seconds: 20)
+        XCTAssertEqual(torch.level, 1)
+        feed(&torch, lumens: 100_000, from: 120, seconds: 20)
+        XCTAssertEqual(torch.level, 0)
+    }
+
+    func testDarkTipWaitsForTheTorchAtMaxWhenAutoLightIsOn() {
+        func dark(_ light: Double, auto: Bool, atMax: Bool) -> GuidanceTracker.Tip? {
+            GuidanceTracker.condition(state: "normal", reason: "none", light: light, depth: 0.3, speed: 0, thermal: "nominal",
+                                      autoLight: auto, torchAtMax: atMax)
+        }
+        XCTAssertEqual(GuidanceTracker.condition(state: "normal", reason: "none", light: 100, depth: 0.3, speed: 0,
+                                                 thermal: "nominal")?.text, "More light needed · turn on a lamp")
+        XCTAssertEqual(dark(100, auto: false, atMax: true)?.text, "More light needed · turn on a lamp")
+        XCTAssertNil(dark(100, auto: true, atMax: false))
+        XCTAssertEqual(dark(100, auto: true, atMax: true)?.text, "Still too dark · add a lamp")
+        XCTAssertEqual(dark(100, auto: true, atMax: true)?.key, "dark")
+        XCTAssertNil(dark(600, auto: true, atMax: true))
+
+        var tracker = GuidanceTracker()
+        func step(_ time: Double, atMax: Bool) -> GuidanceTracker.Tip? {
+            tracker.update(GuidanceTracker.Input(time: time, trackingState: "normal", trackingReason: "none", ambientIntensity: 100,
+                centerDepthM: 0.3, position: SIMD3<Float>(0, 0, 0), thermal: "nominal", autoLight: true, torchAtMax: atMax))
+        }
+        for i in 0..<30 { XCTAssertNil(step(Double(i) / 10, atMax: false)) }
+        var shown: GuidanceTracker.Tip?
+        for i in 30..<45 { shown = step(Double(i) / 10, atMax: true) }
+        XCTAssertEqual(shown?.text, "Still too dark · add a lamp")
+    }
 }

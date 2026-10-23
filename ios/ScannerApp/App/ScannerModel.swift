@@ -32,6 +32,39 @@ final class ScannerModel {
     var freeBytes: UInt64 = 0
     var scans: [ScanRow] = []
     var remoteStop: RemoteStopRequest?
+    /// One guidance card on the camera (ui/README.md iPhone screen 4). ARKit's own warnings (tracking, speed, light,
+    /// distance) rank first, then the PC's live-coverage tip (dismissable per condition), then ARKit's calm hints.
+    struct ScanCard: Equatable {
+        let key: String
+        let text: String
+        let warn: Bool
+        let dismissable: Bool
+    }
+    var localTip: GuidanceTracker.Tip?
+    var pcTip: GuidanceEvent.Tip?
+    var coverage: Double?
+    private var dismissedPCTips: Set<String> = []
+    var card: ScanCard? {
+        guard recording else { return nil }
+        if let tip = localTip, tip.level == .warn { return ScanCard(key: tip.key, text: tip.text, warn: true, dismissable: false) }
+        if let tip = pcTip, !dismissedPCTips.contains(tip.conditionKey) {
+            return ScanCard(key: tip.conditionKey, text: tip.text, warn: tip.severity == "warning", dismissable: true)
+        }
+        if let tip = localTip { return ScanCard(key: tip.key, text: tip.text, warn: false, dismissable: false) }
+        return nil
+    }
+    /// The status pill: grey when all is well, amber only for a problem the user should know about.
+    var pillWarn: Bool { recording && !(connected && linkMessage == "Connected") }
+    var pillText: String {
+        if !connected { return "PC not connected · recording is safe" }
+        if linkMessage != "Connected" { return "PC preview paused · recording is safe" }
+        return "Scanning · all good"
+    }
+    /// Auto flashlight in dark scenes (on by default, remembered). The engine applies it on its capture queue.
+    var autoLight: Bool = UserDefaults.standard.object(forKey: "autoLight") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(autoLight, forKey: "autoLight"); engine.setAutoLight(autoLight) }
+    }
+    func dismissCard() { if let card, card.dismissable { dismissedPCTips.insert(card.key) } }
     private var currentSessionID: UUID?
     private var lifetimeEpoch = UUID()
     private var lastLinkRevision: UInt64 = 0
@@ -55,12 +88,17 @@ final class ScannerModel {
         } },
         remoteStop: { [weak self] id, detail in Task { @MainActor in
             self?.remoteStop = RemoteStopRequest(id: UUID().uuidString, sessionID: id, reason: detail)
-        } }, configurePreview: { [weak self] profile in Task { @MainActor in self?.engine.configurePreview(profile) } })
+        } }, configurePreview: { [weak self] profile in Task { @MainActor in self?.engine.configurePreview(profile) } },
+        guidance: { [weak self] event in Task { @MainActor in
+            guard let self, self.recording, event.sessionID == self.currentSessionID else { return }
+            self.pcTip = event.tip; self.coverage = event.coverageScore
+        } })
 
     init() {
         parent = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Scans", isDirectory: true)
         engine = CaptureEngine(parent: parent)
+        engine.setAutoLight(autoLight)
         engine.onStatus = { [weak self] snapshot in Task { @MainActor in
             guard let self else { return }
             guard self.currentSessionID == snapshot.sessionID else { return }
@@ -68,6 +106,7 @@ final class ScannerModel {
             self.frames = snapshot.frames; self.stills = snapshot.stills; self.dropped = snapshot.droppedFrames
             self.freeBytes = snapshot.freeBytes
             if let text = snapshot.message { self.message = text }
+            self.localTip = snapshot.guidance
             do { try await self.link.status(snapshot) } catch { self.linkMessage = "Preview disconnected; recording is safe" }
         } }
         engine.onPreview = { [weak self] id, segment, sequence, bytes in Task { @MainActor in
@@ -129,6 +168,7 @@ final class ScannerModel {
                     await refreshScans(); return
                 }
                 recording = true; elapsed = 0; message = "Scanning · recording on iPhone"
+                localTip = nil; pcTip = nil; coverage = nil; dismissedPCTips = []
                 UIApplication.shared.isIdleTimerDisabled = true
                 await refreshScans()
                 if let store = await engine.currentStore() {

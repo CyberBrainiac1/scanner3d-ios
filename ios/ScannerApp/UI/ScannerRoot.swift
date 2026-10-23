@@ -36,6 +36,18 @@ private struct ScanScreen: View {
                 .overlay {
                     if !model.recording { ContentUnavailableView("Scan a small object", systemImage: "cube.transparent", description: Text("Use even light. Move slowly around every side.")) }
                 }
+                .overlay(alignment: .top) {
+                    if model.recording {
+                        // ui/README.md iPhone screens 3-4: one status pill, then one guidance card only when there is
+                        // something to do. VoiceOver reads the pill, then the card.
+                        VStack(spacing: 10) {
+                            StatusPill(text: model.pillText, warn: model.pillWarn, elapsed: model.elapsed)
+                            if let card = model.card { GuidanceCard(card: card) { model.dismissCard() } }
+                        }
+                        .padding(12)
+                        .animation(.easeInOut(duration: 0.2), value: model.card)
+                    }
+                }
                 .clipShape(RoundedRectangle(cornerRadius: 18))
             Text(model.linkMessage).font(.subheadline).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
             if let error = model.error {
@@ -44,7 +56,9 @@ private struct ScanScreen: View {
                     .onAppear { AccessibilityNotification.Announcement(error).post() }
                     .onChange(of: error) { _, message in AccessibilityNotification.Announcement(message).post() }
             }
+            Toggle("Turn on the flashlight when it's dark", isOn: $model.autoLight).font(.subheadline)
             DisclosureGroup("Details") {
+                if let coverage = model.coverage { LabeledContent("Part covered so far (PC estimate)", value: "\(Int((coverage * 100).rounded())) %") }
                 LabeledContent("Saved frames", value: String(model.frames))
                 LabeledContent("High-resolution photos", value: String(model.stills))
                 LabeledContent("Camera queue drops", value: String(model.dropped))
@@ -59,6 +73,45 @@ private struct ScanScreen: View {
         }
         .padding(20).navigationTitle("Scanner").navigationBarTitleDisplayMode(.inline)
         .toolbar { if !model.recording { Button("Connect PC") { model.sheet = .pairing } } }
+    }
+}
+
+private struct StatusPill: View {
+    let text: String
+    let warn: Bool
+    let elapsed: Double
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle().fill(.red).frame(width: 8, height: 8).accessibilityHidden(true)
+            Text(text).font(.subheadline.weight(.medium))
+            Text(ScanStatusText.timer(elapsed)).font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 14).padding(.vertical, 8)
+        .background(Capsule().fill(warn ? Color(red: 1.0, green: 0.93, blue: 0.80) : .white))
+        .foregroundStyle(warn ? Color(red: 0.55, green: 0.33, blue: 0.0) : .primary)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct GuidanceCard: View {
+    let card: ScannerModel.ScanCard
+    let dismiss: () -> Void
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: card.warn ? "exclamationmark.triangle.fill" : "arrow.triangle.turn.up.right.circle")
+                .foregroundStyle(card.warn ? Color.orange : Color.secondary).accessibilityHidden(true)
+            Text(card.text).font(.body).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            if card.dismissable {
+                Button(action: dismiss) { Image(systemName: "xmark").font(.footnote.weight(.semibold)) }
+                    .buttonStyle(.plain).foregroundStyle(.secondary).accessibilityLabel("Dismiss tip")
+            }
+        }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 12).fill(.white))
+        .foregroundStyle(.primary)
+        .onAppear { AccessibilityNotification.Announcement(card.text).post() }
+        .onChange(of: card.text) { _, text in AccessibilityNotification.Announcement(text).post() }
     }
 }
 
