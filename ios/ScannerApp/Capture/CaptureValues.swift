@@ -77,33 +77,6 @@ enum CaptureValues {
         for y in 0..<height { output.append(base.advanced(by: y * stride).assumingMemoryBound(to: UInt8.self), count: active) }
         return output
     }
-}
-
-/// Actual sample counts over two-second windows, not requested rates. Finish includes the last partial
-/// window; min/max describe windows, mean describes total samples divided by actual elapsed time.
-struct MeasuredRate {
-    private var first: Double?
-    private var last: Double?
-    private var window: Double?
-    private var windowCount = 0
-    private var intervals: [Double] = []
-    private var count = 0
-
-    mutating func add(_ time: Double) {
-        guard time.isFinite, time >= 0, last.map({ time > $0 }) ?? true else { return }
-        if first == nil { first = time; window = time }
-        if let start = window, time - start >= 2 {
-            intervals.append(Double(windowCount) / (time - start)); window = time; windowCount = 0
-        }
-        last = time; count += 1; windowCount += 1
-    }
-
-    func stats(until end: Double) -> [String: Double] {
-        guard let first, let window, end > first else { return ["mean": 0, "min": 0, "max": 0] }
-        var windows = intervals
-        if end > window { windows.append(Double(windowCount) / (end - window)) }
-        return ["mean": Double(count) / (end - first), "min": windows.min() ?? 0, "max": windows.max() ?? 0]
-    }
 
     /// Median depth (m) of the centre third of the depth map, where the part usually is: medium/high confidence,
     /// finite and positive values only, sampled every 4th pixel. nil if too few samples.
@@ -138,6 +111,33 @@ struct MeasuredRate {
     static func fourCC(_ code: OSType) -> String {
         let bytes = [24, 16, 8, 0].map { UInt8((code >> UInt32($0)) & 0xff) }
         return bytes.allSatisfy { (32...126).contains($0) } ? String(decoding: bytes, as: UTF8.self) : String(code)
+    }
+}
+
+/// Actual sample counts over two-second windows, not requested rates. Finish includes the last partial
+/// window; min/max describe windows, mean describes total samples divided by actual elapsed time.
+struct MeasuredRate {
+    private var first: Double?
+    private var last: Double?
+    private var window: Double?
+    private var windowCount = 0
+    private var intervals: [Double] = []
+    private var count = 0
+
+    mutating func add(_ time: Double) {
+        guard time.isFinite, time >= 0, last.map({ time > $0 }) ?? true else { return }
+        if first == nil { first = time; window = time }
+        if let start = window, time - start >= 2 {
+            intervals.append(Double(windowCount) / (time - start)); window = time; windowCount = 0
+        }
+        last = time; count += 1; windowCount += 1
+    }
+
+    func stats(until end: Double) -> [String: Double] {
+        guard let first, let window, end > first else { return ["mean": 0, "min": 0, "max": 0] }
+        var windows = intervals
+        if end > window { windows.append(Double(windowCount) / (end - window)) }
+        return ["mean": Double(count) / (end - first), "min": windows.min() ?? 0, "max": windows.max() ?? 0]
     }
 }
 
