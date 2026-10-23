@@ -30,7 +30,7 @@ final class UIBundleTests: XCTestCase {
         // entry missing, duplicate paths, escaping paths
         XCTAssertThrowsError(try UIBundleRequest(version: "1", minNative: "0.3.0", entry: "main.html", files: [good]).verifiedFiles(nativeVersion: "0.3.0"))
         XCTAssertThrowsError(try UIBundleRequest(version: "1", minNative: "0.3.0", entry: "index.html", files: [good, good]).verifiedFiles(nativeVersion: "0.3.0"))
-        for bad in ["../evil.html", "/abs.js", "a//b.js", ".hidden", "A.js", "a/./b.js", "a\b.js", ""] {
+        for bad in ["../evil.html", "/abs.js", "a//b.js", ".hidden", "A.js", "a/./b.js", "a b.js", ""] {
             XCTAssertFalse(UIBundleRequest.isValidPath(bad), bad)
         }
         for ok in ["index.html", "js/app.js", "img/icon-1.svg", "_x/y_z.css"] { XCTAssertTrue(UIBundleRequest.isValidPath(ok), ok) }
