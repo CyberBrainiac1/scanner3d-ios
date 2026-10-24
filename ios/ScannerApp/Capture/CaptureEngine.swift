@@ -86,7 +86,12 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
     private var centerDepth: Double?
     private var lastDepthProbe: Double = -1
     private var lastStatus: Double = -1
-    private let imageContext = CIContext(options: [.cacheIntermediates: false])
+    /// Preview pictures are made here, one at a time, never on `capture`: on the first real scans a preview hung the
+    /// capture queue at the second picture and froze the whole recording (and Stop). `previewSince` >= 0 while one is
+    /// in flight; a picture still unfinished after `previewStuckAfter` turns preview off for the scan, never recording.
+    private let previewQueue = DispatchQueue(label: "scanner3d.preview", qos: .utility, autoreleaseFrequency: .workItem)
+    private var previewSince: Double = -1
+    static let previewStuckAfter = 2.0
 
     init(parent: URL) {
         self.parent = parent
@@ -158,7 +163,7 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
                         model: Self.modelIdentifier(), os: os,
                         sourceRevision: Bundle.main.object(forInfoDictionaryKey: "ScannerSourceRevision") as? String ?? "unknown", time: now)
                     lastPreview = -1; lastStill = -1; lastStatus = -1; previewSequence = 0; stillInFlight = false; previewEncodingEnabled = true
-                    previewFailures = 0; guidance = freshGuidance(); centerDepth = nil; lastDepthProbe = -1
+                    previewFailures = 0; previewSince = -1; guidance = freshGuidance(); centerDepth = nil; lastDepthProbe = -1
                     torch = freshTorch(); torchFailed = false; appliedTorch = 0; sensors = nil
                     gate.lock(); dropped = 0; generation = id; running = true; gate.unlock()
                     session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
@@ -210,24 +215,15 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
                 if thermal == "critical" { try recorder.thermal(thermal, time: frame.timestamp); requestStop("thermal"); return }
                 if let fid = try recorder.append(frame) {
                     if previewAllowed, previewEncodingEnabled, frame.timestamp - lastPreview >= 0.2 {
-                        lastPreview = frame.timestamp
-                        do {
-                            if let bytes = try preview(frame, recorder: recorder, frameID: fid) {
-                                onPreview?(recorder.store.sessionID, recorder.segment, previewSequence, bytes); previewSequence += 1
-                            }
-                            previewFailures = 0
-                        } catch {
-                            // A droppable PC preview failure must never stop local original recording. One bad frame
-                            // must not end the preview either (the first real-phone scan lost it on frame 0): retry on
-                            // later frames and give up only after a long unbroken run of failures.
-                            previewFailures += 1
-                            if previewFailures == 1 || previewFailures % 10 == 0 {
-                                try recorder.event("preview_encode_error", detail: "\(error.localizedDescription) (\(previewFailures) in a row)", time: frame.timestamp)
-                            }
-                            if previewFailures >= Self.previewFailureLimit {
-                                previewEncodingEnabled = false
-                                onPreviewFailure?(error.localizedDescription)
-                            }
+                        if previewSince < 0 {
+                            lastPreview = frame.timestamp
+                            startPreview(frame, recorder: recorder, frameID: fid)
+                        } else if frame.timestamp - previewSince > Self.previewStuckAfter {
+                            // the picture in flight never finished: stop making pictures for this scan, keep recording
+                            previewEncodingEnabled = false
+                            try recorder.event("preview_stuck", detail: "a preview picture took over \(Self.previewStuckAfter) s; preview off for this scan",
+                                               time: frame.timestamp)
+                            onPreviewFailure?("Preview stopped responding")
                         }
                     }
                     updateGuidance(frame, time: frame.timestamp, recorder: recorder)
@@ -370,55 +366,70 @@ final class CaptureEngine: NSObject, ARSessionDelegate, @unchecked Sendable {
         }
     }
 
-    private func preview(_ frame: ARFrame, recorder: CaptureRecorder, frameID: UInt64) throws -> Data? {
-        guard onPreview != nil else { return nil }
-        let source = frame.capturedImage
-        let w = CVPixelBufferGetWidth(source), h = CVPixelBufferGetHeight(source)
-        let sx = Double(previewWidth) / Double(w), sy = Double(previewHeight) / Double(h)
-        // Crop to whole pixels: a scaled extent such as 479.99997 rows makes the JPEG writers return nil.
-        let image = CIImage(cvPixelBuffer: source).transformed(by: CGAffineTransform(scaleX: sx, y: sy))
-            .cropped(to: CGRect(x: 0, y: 0, width: previewWidth, height: previewHeight))
-        guard let jpeg = encodeJPEG(image) else {
-            throw OriginalStore.Failure.io("Preview JPEG (\(w)x\(h) \(CaptureValues.fourCC(CVPixelBufferGetPixelFormatType(source))) -> \(previewWidth)x\(previewHeight))")
-        }
-        var depthSection: DepthSection?, confidenceBytes: Data?
-        if let depth = frame.sceneDepth, let confidence = depth.confidenceMap {
-            let dw = CVPixelBufferGetWidth(depth.depthMap), dh = CVPixelBufferGetHeight(depth.depthMap)
-            let bytes = try CaptureValues.packed(depth.depthMap, format: kCVPixelFormatType_DepthFloat32, bytesPerPixel: 4)
-            // iPhone hardware is little-endian. Decode without assuming Data's alignment.
-            let floats: [Float] = stride(from: 0, to: bytes.count, by: 4).map { offset in
-                let bits = (0..<4).reduce(UInt32(0)) { $0 | (UInt32(bytes[offset + $1]) << ($1 * 8)) }
-                return Float(bitPattern: bits)
-            }
-            let previewBytes: Data
-            if previewFloatDepth { previewBytes = bytes } else { previewBytes = try DepthSection.quantize(floats, scale: depthScale) }
-            depthSection = DepthSection(codec: previewFloatDepth ? .float32 : .uint16,
-                bytes: previewBytes,
-                intrinsics: CaptureValues.intrinsics(frame, width: dw, height: dh), scaleMetersPerUnit: previewFloatDepth ? 1 : Float(depthScale))
-            if previewConfidence { confidenceBytes = try CaptureValues.packed(confidence, format: kCVPixelFormatType_OneComponent8, bytesPerPixel: 1) }
-        }
+    /// Takes what one preview packet needs from the frame (on `capture`), then makes the packet on `previewQueue`
+    /// (CPU only: vImage + ImageIO, no Core Image) and hands it back to `capture`. One picture in flight at a time;
+    /// a failure is counted and the preview gives up only after a long unbroken run (one bad frame must not end it).
+    private func startPreview(_ frame: ARFrame, recorder: CaptureRecorder, frameID: UInt64) {
+        guard let deliver = onPreview else { return }
+        let image = frame.capturedImage
+        let w = CVPixelBufferGetWidth(image), h = CVPixelBufferGetHeight(image)
+        let pw = previewWidth, ph = previewHeight, quality = previewQuality
+        let floatDepth = previewFloatDepth, scale = depthScale, wantConfidence = previewConfidence
+        let depthMap = frame.sceneDepth?.depthMap, confidenceMap = frame.sceneDepth?.confidenceMap
+        let depthK = depthMap.map { CaptureValues.intrinsics(frame, width: CVPixelBufferGetWidth($0), height: CVPixelBufferGetHeight($0)) }
         let tracking = CaptureValues.tracking(frame.camera)
-        return try PacketEncoder.preview(PreviewFrame(sessionID: recorder.store.sessionID, segment: recorder.segment,
-            frameID: frameID, previewSequence: previewSequence, deviceTime: frame.timestamp,
-            sentTime: ProcessInfo.processInfo.systemUptime, cameraToWorld: CaptureValues.pose(frame.camera),
-            trackingState: tracking.stateByte, trackingReason: tracking.reasonByte,
-            source: CaptureValues.intrinsics(frame, width: w, height: h),
-            rgb: RGBSection(jpeg: jpeg, intrinsics: CaptureValues.intrinsics(frame, width: previewWidth, height: previewHeight)),
-            depth: depthSection, confidence: confidenceBytes))
-    }
-
-    /// Core Image's JPEG writer first; if it returns nil, render to a CGImage and write it with ImageIO.
-    private func encodeJPEG(_ image: CIImage) -> Data? {
-        guard let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
-        if let jpeg = imageContext.jpegRepresentation(of: image, colorSpace: space,
-            options: [CIImageRepresentationOption(rawValue: kCGImageDestinationLossyCompressionQuality as String): previewQuality]) {
-            return jpeg
+        let pose = CaptureValues.pose(frame.camera)
+        let sourceK = CaptureValues.intrinsics(frame, width: w, height: h)
+        let rgbK = CaptureValues.intrinsics(frame, width: pw, height: ph)
+        let session = recorder.store.sessionID, segment = recorder.segment, sequence = previewSequence, time = frame.timestamp
+        previewSince = time
+        previewQueue.async { [self] in
+            var packet: Data?, failure: String?
+            do {
+                guard let jpeg = CaptureValues.jpegPreview(image, width: pw, height: ph, quality: quality) else {
+                    throw OriginalStore.Failure.io("Preview JPEG (\(w)x\(h) \(CaptureValues.fourCC(CVPixelBufferGetPixelFormatType(image))) -> \(pw)x\(ph))")
+                }
+                var depthSection: DepthSection?, confidenceBytes: Data?
+                if let depthMap, let confidenceMap, let depthK {
+                    let raw = try CaptureValues.packed(depthMap, format: kCVPixelFormatType_DepthFloat32, bytesPerPixel: 4)
+                    let payload: Data
+                    if floatDepth {
+                        payload = raw
+                    } else {
+                        var floats = [Float](repeating: 0, count: raw.count / 4)   // little-endian iPhone; copy avoids alignment assumptions
+                        _ = floats.withUnsafeMutableBytes { raw.copyBytes(to: $0) }
+                        payload = try DepthSection.quantize(floats, scale: scale)
+                    }
+                    depthSection = DepthSection(codec: floatDepth ? .float32 : .uint16, bytes: payload, intrinsics: depthK,
+                                                scaleMetersPerUnit: floatDepth ? 1 : Float(scale))
+                    if wantConfidence { confidenceBytes = try CaptureValues.packed(confidenceMap, format: kCVPixelFormatType_OneComponent8, bytesPerPixel: 1) }
+                }
+                packet = try PacketEncoder.preview(PreviewFrame(sessionID: session, segment: segment,
+                    frameID: frameID, previewSequence: sequence, deviceTime: time,
+                    sentTime: ProcessInfo.processInfo.systemUptime, cameraToWorld: pose,
+                    trackingState: tracking.stateByte, trackingReason: tracking.reasonByte, source: sourceK,
+                    rgb: RGBSection(jpeg: jpeg, intrinsics: rgbK), depth: depthSection, confidence: confidenceBytes))
+            } catch { failure = error.localizedDescription }
+            capture.async { [self] in
+                previewSince = -1
+                guard let current = self.recorder, current.store.sessionID == session, !current.closed else { return }
+                if let packet {
+                    previewFailures = 0
+                    previewSequence = max(previewSequence, sequence + 1)
+                    deliver(session, segment, sequence, packet)
+                } else {
+                    let reason = failure ?? "unknown"
+                    previewFailures += 1
+                    if previewFailures == 1 || previewFailures % 10 == 0 {
+                        try? current.event("preview_encode_error", detail: "\(reason) (\(previewFailures) in a row)", time: time)
+                    }
+                    if previewFailures >= Self.previewFailureLimit {
+                        previewEncodingEnabled = false
+                        onPreviewFailure?(reason)
+                    }
+                }
+            }
         }
-        guard let cg = imageContext.createCGImage(image, from: image.extent, format: .RGBA8, colorSpace: space) else { return nil }
-        let out = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(out, "public.jpeg" as CFString, 1, nil) else { return nil }
-        CGImageDestinationAddImage(destination, cg, [kCGImageDestinationLossyCompressionQuality: previewQuality] as CFDictionary)
-        return CGImageDestinationFinalize(destination) ? out as Data : nil
     }
 
     private func publish(_ recorder: CaptureRecorder, time: Double, message: String?) {

@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 import ScannerStreamingCore
 import simd
 import CoreVideo
@@ -240,4 +241,51 @@ final class CaptureTests: XCTestCase {
         for i in 30..<45 { shown = step(Double(i) / 10, atMax: true) }
         XCTAssertEqual(shown?.text, "Still too dark · add a lamp")
     }
+
+    func testRelativePathsSurviveAFolderAlias() throws {
+        // a device's Documents is /var/mobile/... while enumerators return /private/var/mobile/... (an alias of the
+        // same folder); the same situation here with a real folder and a symlink to it
+        let real = try temporary()
+        let alias = real.deletingLastPathComponent().appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: real)
+        addTeardownBlock { try? FileManager.default.removeItem(at: alias) }
+        let file = real.appendingPathComponent("originals/depth/000002.f32")
+        try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data([1]).write(to: file)
+        let viaAlias = alias.appendingPathComponent("originals", isDirectory: true)
+        XCTAssertEqual(OriginalStore.relativePath(of: file, under: viaAlias), "depth/000002.f32")
+        XCTAssertEqual(OriginalStore.relativePath(of: viaAlias.appendingPathComponent("depth/000002.f32"),
+                                                  under: real.appendingPathComponent("originals")), "depth/000002.f32")
+        XCTAssertNil(OriginalStore.relativePath(of: real.appendingPathComponent("other.f32"), under: viaAlias))
+    }
+
+    func testAFinalizedScanReopensForUpload() throws {
+        // the real-device failure: every closed scan threw incompleteCatalog when reopened to send it
+        let parent = try temporary(), id = UUID()
+        let store = try OriginalStore(parent: parent, sessionID: id, create: true)
+        try store.commit(Data([1, 2, 3, 4]), path: "depth/000000.f32", kind: "depth_f32", segment: 0)
+        try store.commit(Data("{}".utf8), path: "session_end.json", kind: "session_end")
+        let reopened = try OriginalStore(parent: parent, sessionID: id, create: false)
+        XCTAssertTrue(reopened.finalized)
+        XCTAssertEqual(reopened.files.count, 2)
+    }
+
+    func testPreviewJPEGComesFromACameraBufferOnTheCPU() throws {
+        // the preview path that replaced Core Image (which hung the capture queue on the first real scans)
+        var made: CVPixelBuffer?
+        let attributes = [kCVPixelBufferIOSurfacePropertiesKey: [String: Any]()] as CFDictionary
+        XCTAssertEqual(CVPixelBufferCreate(nil, 64, 48, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange, attributes, &made), kCVReturnSuccess)
+        let buffer = try XCTUnwrap(made)
+        CVPixelBufferLockBaseAddress(buffer, [])
+        for plane in 0..<2 {
+            memset(CVPixelBufferGetBaseAddressOfPlane(buffer, plane)!, plane == 0 ? 200 : 128,
+                   CVPixelBufferGetBytesPerRowOfPlane(buffer, plane) * CVPixelBufferGetHeightOfPlane(buffer, plane))
+        }
+        CVPixelBufferUnlockBaseAddress(buffer, [])
+        let jpeg = try XCTUnwrap(CaptureValues.jpegPreview(buffer, width: 16, height: 12, quality: 0.6))
+        let image = try XCTUnwrap(UIImage(data: jpeg))
+        XCTAssertEqual(image.size, CGSize(width: 16, height: 12))
+        XCTAssertNil(CaptureValues.jpegPreview(buffer, width: 0, height: 12, quality: 0.6))
+    }
 }
+

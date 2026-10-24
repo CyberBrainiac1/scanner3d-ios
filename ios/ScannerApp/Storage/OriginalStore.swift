@@ -79,8 +79,9 @@ final class OriginalStore: @unchecked Sendable {
                 let values = try url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
                 guard values.isSymbolicLink != true else { throw Failure.invalidPath }
                 if values.isRegularFile == true {
-                    let relative = String(url.path.dropFirst(originals.path.count + 1))
-                    guard known.contains(relative) else { throw Failure.incompleteCatalog }
+                    guard let relative = Self.relativePath(of: url, under: originals), known.contains(relative) else {
+                        throw Failure.incompleteCatalog
+                    }
                 }
             }
         }
@@ -222,6 +223,19 @@ final class OriginalStore: @unchecked Sendable {
             }
         }
         return current
+    }
+
+    /// `url` relative to `base` ("depth/000002.f32"), or nil when it is not inside it. The base and the file's folder
+    /// are symlink-resolved first (the file itself is not, so a symlinked file keeps its own name): on a device the
+    /// Documents URL is /var/mobile/... while an enumerator returns /private/var/mobile/..., and plain prefix arithmetic
+    /// garbled every path, so every reopened scan looked incomplete (first real device run, 2026-10-24).
+    static func relativePath(of url: URL, under base: URL) -> String? {
+        let root = base.resolvingSymlinksInPath().standardizedFileURL.path
+        let folder = url.deletingLastPathComponent().resolvingSymlinksInPath().standardizedFileURL.path
+        let full = (folder as NSString).appendingPathComponent(url.lastPathComponent)
+        let prefix = root.hasSuffix("/") ? root : root + "/"
+        guard full.hasPrefix(prefix), full.count > prefix.count else { return nil }
+        return String(full.dropFirst(prefix.count))
     }
 
     private static func isSymlink(_ url: URL) -> Bool {

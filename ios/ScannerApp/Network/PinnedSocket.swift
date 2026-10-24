@@ -10,6 +10,7 @@ final class PinnedSocket: NSObject, URLSessionDelegate, URLSessionTaskDelegate, 
     private let fingerprint: String
     private var session: URLSession!
     private(set) var task: URLSessionWebSocketTask!
+    static let maximumMessageBytes = 1_048_576
 
     init(address: PairingAddress, fingerprint: String, channel: String) throws {
         guard ["preview", "originals"].contains(channel),
@@ -25,7 +26,11 @@ final class PinnedSocket: NSObject, URLSessionDelegate, URLSessionTaskDelegate, 
         configuration.httpShouldSetCookies = false
         session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
         task = session.webSocketTask(with: url)
-        task.maximumMessageSize = ControlOutbox.helloMaximumBytes
+        // iOS applies maximumMessageSize only before resume(); a later change is ignored. 0.3.0 set 16 KiB here and
+        // "raised" it after the hello, so every PC message over 16 KiB killed the socket (first real device run).
+        // Allow the contract's largest max_text_bytes (1 MiB); StreamConnection enforces the negotiated and the
+        // pre-hello limits on every message itself.
+        task.maximumMessageSize = PinnedSocket.maximumMessageBytes
         task.resume()
     }
 

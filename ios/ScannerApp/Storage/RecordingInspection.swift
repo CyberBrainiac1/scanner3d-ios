@@ -106,7 +106,7 @@ struct RecordingInspection: Codable, Sendable {
         while let url = walker.nextObject() as? URL {
             try Task.checkCancellation()
             let values = try url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
-            let path = String(url.path.dropFirst(base.path.count + 1))
+            let path = OriginalStore.relativePath(of: url, under: base) ?? url.lastPathComponent
             if values.isSymbolicLink == true { walker.skipDescendants(); visit(path, true) }
             else if values.isRegularFile == true { visit(path, false) }
         }

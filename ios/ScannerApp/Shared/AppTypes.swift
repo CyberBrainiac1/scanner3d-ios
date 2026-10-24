@@ -61,7 +61,7 @@ enum LinkEvent: Sendable {
 
 enum AppVersion {
     /// The native shell. A UI bundle declares the oldest shell it runs on (`min_native`, docs/PHONE-UI-AND-DEBUG.md).
-    static let native = "0.3.0"
+    static let native = "0.4.0"
 }
 
 /// The answer to one PC debug request: its response body, or an error response.

@@ -3,6 +3,8 @@ import ARKit
 import CoreVideo
 import ScannerStreamingCore
 import simd
+import Accelerate
+import ImageIO
 
 enum CaptureValues {
     static let conventions: [String: String] = [
@@ -106,6 +108,48 @@ enum CaptureValues {
         guard values.count >= 8 else { return nil }
         values.sort()
         return Double(values[values.count / 2])
+    }
+
+    /// A preview JPEG straight from ARKit's YCbCr camera buffer, on the CPU: vImage converts and scales, ImageIO
+    /// writes. No Core Image (its path hung the capture queue on the first real scans). nil if anything fails.
+    static func jpegPreview(_ buffer: CVPixelBuffer, width: Int, height: Int, quality: Double) -> Data? {
+        let format = CVPixelBufferGetPixelFormatType(buffer)
+        let full = format == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+        guard full || format == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange, CVPixelBufferGetPlaneCount(buffer) == 2,
+              width > 0, height > 0, CVPixelBufferLockBaseAddress(buffer, .readOnly) == kCVReturnSuccess else { return nil }
+        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+        guard let yBase = CVPixelBufferGetBaseAddressOfPlane(buffer, 0), let cBase = CVPixelBufferGetBaseAddressOfPlane(buffer, 1) else { return nil }
+        var luma = vImage_Buffer(data: yBase, height: vImagePixelCount(CVPixelBufferGetHeightOfPlane(buffer, 0)),
+                                 width: vImagePixelCount(CVPixelBufferGetWidthOfPlane(buffer, 0)),
+                                 rowBytes: CVPixelBufferGetBytesPerRowOfPlane(buffer, 0))
+        var chroma = vImage_Buffer(data: cBase, height: vImagePixelCount(CVPixelBufferGetHeightOfPlane(buffer, 1)),
+                                   width: vImagePixelCount(CVPixelBufferGetWidthOfPlane(buffer, 1)),
+                                   rowBytes: CVPixelBufferGetBytesPerRowOfPlane(buffer, 1))
+        var range = full
+            ? vImage_YpCbCrPixelRange(Yp_bias: 0, CbCr_bias: 128, YpRangeMax: 255, CbCrRangeMax: 255, YpMax: 255, YpMin: 0, CbCrMax: 255, CbCrMin: 0)
+            : vImage_YpCbCrPixelRange(Yp_bias: 16, CbCr_bias: 128, YpRangeMax: 235, CbCrRangeMax: 240, YpMax: 235, YpMin: 16, CbCrMax: 240, CbCrMin: 16)
+        var info = vImage_YpCbCrToARGB()
+        guard vImageConvert_YpCbCrToARGB_GenerateConversion(kvImage_YpCbCrToARGBMatrix_ITU_R_601_4, &range, &info,
+                                                            kvImage420Yp8_CbCr8, kvImageARGB8888, vImage_Flags(kvImageNoFlags)) == kvImageNoError
+        else { return nil }
+        let sw = Int(luma.width), sh = Int(luma.height)
+        let argbData = UnsafeMutableRawPointer.allocate(byteCount: sw * sh * 4, alignment: 64)
+        defer { argbData.deallocate() }
+        var argb = vImage_Buffer(data: argbData, height: vImagePixelCount(sh), width: vImagePixelCount(sw), rowBytes: sw * 4)
+        guard vImageConvert_420Yp8_CbCr8ToARGB8888(&luma, &chroma, &argb, &info, nil, 255, vImage_Flags(kvImageNoFlags)) == kvImageNoError
+        else { return nil }
+        let smallData = UnsafeMutableRawPointer.allocate(byteCount: width * height * 4, alignment: 64)
+        defer { smallData.deallocate() }
+        var small = vImage_Buffer(data: smallData, height: vImagePixelCount(height), width: vImagePixelCount(width), rowBytes: width * 4)
+        guard vImageScale_ARGB8888(&argb, &small, nil, vImage_Flags(kvImageHighQualityResampling)) == kvImageNoError,
+              let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(data: smallData, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                                      space: space, bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue | CGBitmapInfo.byteOrder32Big.rawValue),
+              let picture = context.makeImage() else { return nil }
+        let out = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(out, "public.jpeg" as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImage(destination, picture, [kCGImageDestinationLossyCompressionQuality: quality] as CFDictionary)
+        return CGImageDestinationFinalize(destination) ? out as Data : nil
     }
 
     static func fourCC(_ code: OSType) -> String {

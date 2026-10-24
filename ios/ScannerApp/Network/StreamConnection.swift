@@ -70,7 +70,7 @@ actor StreamConnection {
         else { try response.validate(socket: channel, sentPairingToken: false) }
         maximumTextBytes = response.limits.maxTextBytes
         idleSeconds = Double(response.limits.idleTimeoutMs) / 1000
-        socket.task.maximumMessageSize = maximumTextBytes
+        // (the socket's own limit is fixed at creation; maximumTextBytes is enforced per message in readLoop)
         try await outbox.markHandshakeComplete(maximumTextBytes: maximumTextBytes)
         await writer.poke()
         return response
