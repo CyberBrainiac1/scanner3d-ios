@@ -216,7 +216,7 @@ final class WebUIController: NSObject, WKScriptMessageHandler, WKNavigationDeleg
     /// Any JSON-serializable value (non-finite numbers become null) as a JSON text; never throws or traps.
     nonisolated static func json(_ value: Any) -> String {
         let wrapped: [Any] = [sanitize(value)]
-        guard JSONSerialization.isValidJSONObject(wrapped), let data = try? JSONSerialization.data(withJSONObject: wrapped),
+        guard JSONSerialization.isValidJSONObject(wrapped), let data = try? JSONSerialization.data(withJSONObject: wrapped, options: [.sortedKeys]),
               let text = String(data: data, encoding: .utf8) else { return "null" }
         return String(text.dropFirst().dropLast())
     }
